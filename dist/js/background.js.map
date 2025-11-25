@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/background.ts"],
+  "sourcesContent": ["/**\n * background.ts\n *\n * Service worker for the extension.\n * Handles opening the options page.\n */\n\nchrome.runtime.onMessage.addListener((message, sender, sendResponse) => {\n    if (message.action === 'openOptions') {\n        chrome.runtime.openOptionsPage();\n    }\n});\n\n// Optional: Install hook\nchrome.runtime.onInstalled.addListener((details) => {\n    if (details.reason === 'install') {\n        // Could set default labels here if we wanted\n        const defaultLabels = [\n            { name: 'Inbox', id: 'default-inbox' },\n            { name: 'Sent', id: 'default-sent' }\n        ];\n        chrome.storage.sync.get(['labels'], (result) => {\n            if (!result.labels) {\n                chrome.storage.sync.set({ labels: defaultLabels });\n            }\n        });\n    }\n});\n"],
+  "mappings": ";;;AAOA,SAAO,QAAQ,UAAU,YAAY,CAAC,SAAS,QAAQ,iBAAiB;AACpE,QAAI,QAAQ,WAAW,eAAe;AAClC,aAAO,QAAQ,gBAAgB;AAAA,IACnC;AAAA,EACJ,CAAC;AAGD,SAAO,QAAQ,YAAY,YAAY,CAAC,YAAY;AAChD,QAAI,QAAQ,WAAW,WAAW;AAE9B,YAAM,gBAAgB;AAAA,QAClB,EAAE,MAAM,SAAS,IAAI,gBAAgB;AAAA,QACrC,EAAE,MAAM,QAAQ,IAAI,eAAe;AAAA,MACvC;AACA,aAAO,QAAQ,KAAK,IAAI,CAAC,QAAQ,GAAG,CAAC,WAAW;AAC5C,YAAI,CAAC,OAAO,QAAQ;AAChB,iBAAO,QAAQ,KAAK,IAAI,EAAE,QAAQ,cAAc,CAAC;AAAA,QACrD;AAAA,MACJ,CAAC;AAAA,IACL;AAAA,EACJ,CAAC;",
+  "names": []
+}

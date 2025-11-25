@@ -1,0 +1,65 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "default_locale": "en",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "javascripts/*",
+        "icons/*",
+        "stylesheets/*"
+      ],
+      "matches": [
+        "*://*.cloudhq.net/*",
+        "https://mail.google.com/*"
+      ]
+    }
+  ],
+  "name": "__MSG_appName__",
+  "short_name": "__MSG_appShortName__",
+  "icons": {
+    "128": "icons/icon-128x128.png",
+    "48": "icons/icon-48x48.png"
+  },
+  "converted_from_user_script": true,
+  "externally_connectable": {
+    "matches": [
+      "*://*.cloudhq.net/*"
+    ]
+  },
+  "action": {
+    "default_icon": "icons/gmail_tabs.png",
+    "default_title":"__MSG_appName__"
+  },
+  "content_scripts": [
+    {
+      "exclude_globs": [],
+      "css": [
+        "stylesheets/popover.css"
+      ],
+      "include_globs": [],
+      "js": [
+        "content.js"
+      ],
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "version": "1.0.2.2",
+  "description": "__MSG_appDetail__",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "scripting",
+    "storage",
+    "background"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/",
+    "https://www.cloudhq.net/"
+  ],
+  "manifest_version": 3
+}

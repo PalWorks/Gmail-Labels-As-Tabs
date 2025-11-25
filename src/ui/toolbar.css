@@ -1,0 +1,175 @@
+/* Toolbar Styles */
+.gmail-tabs-bar {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 48px;
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    font-family: 'Google Sans', Roboto, Arial, sans-serif;
+    overflow-x: auto;
+    white-space: nowrap;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    /* Ensure it sits above other content if needed, but usually natural flow is best */
+    z-index: 100;
+}
+
+.gmail-tabs-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.gmail-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 16px;
+    margin-right: 8px;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #5f6368;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    border: 1px solid transparent;
+}
+
+.gmail-tab:hover {
+    background-color: #f1f3f4;
+    color: #202124;
+}
+
+.gmail-tab.active {
+    background-color: #e8f0fe;
+    color: #1967d2;
+    font-weight: 500;
+}
+
+.add-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #5f6368;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background-color 0.2s;
+    font-size: 20px;
+    user-select: none;
+}
+
+.add-tab-btn:hover {
+    background-color: #f1f3f4;
+    color: #202124;
+}
+
+/* Modal Styles */
+.gmail-tabs-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: 'Google Sans', Roboto, Arial, sans-serif;
+}
+
+.modal-content {
+    background: #fff;
+    width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #f1f3f4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #5f6368;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.input-group button {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+#modal-labels-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#modal-labels-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+#modal-labels-list .actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #5f6368;
+    padding: 4px;
+}
+
+#modal-labels-list .actions button:hover {
+    color: #202124;
+    background-color: #f1f3f4;
+    border-radius: 4px;
+}
+
+#modal-labels-list .actions .remove-btn:hover {
+    color: #d93025;
+}
