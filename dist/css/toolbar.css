@@ -487,3 +487,59 @@ body.force-light {
     background-color: #8ab4f8;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
 }
+
+/* Action Buttons (Save View & Manage) */
+.gmail-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--gmail-add-btn-text);
+    transition: all 0.2s ease;
+    margin-left: 4px;
+}
+
+.gmail-tab-btn:hover {
+    background-color: var(--gmail-add-btn-hover-bg);
+    color: var(--gmail-add-btn-hover-text);
+    transform: scale(1.05);
+}
+
+.gmail-tab-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+/* Save View Button (Plus Circle) */
+.save-view-btn {
+    color: var(--primary-btn-bg);
+    /* Use primary color for the 'Add' action */
+}
+
+.save-view-btn:hover {
+    background-color: var(--gmail-tab-active-bg);
+    /* Light blue background on hover */
+    color: var(--primary-btn-hover-bg);
+}
+
+/* Manage Button (Pencil) */
+.manage-btn {
+    opacity: 0.7;
+}
+
+.manage-btn:hover {
+    opacity: 1;
+}
+
+/* Dark Mode Adjustments */
+.force-dark .save-view-btn {
+    color: var(--primary-btn-bg);
+}
+
+.force-dark .save-view-btn:hover {
+    background-color: rgba(138, 180, 248, 0.1);
+}

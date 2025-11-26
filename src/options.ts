@@ -2,23 +2,23 @@
  * options.ts
  *
  * Logic for the options page.
- * Handles adding, removing, and reordering labels.
+ * Handles adding, removing, and reordering tabs.
  */
 
-import { getSettings, saveSettings, addLabel, removeLabel, updateLabelOrder, TabLabel } from './utils/storage';
+import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, Settings, Tab } from './utils/storage';
 
-const labelList = document.getElementById('labels-list') as HTMLDivElement; // Changed from listElement
-const newLabelInput = document.getElementById('new-label-input') as HTMLInputElement; // Changed from inputElement
+const labelList = document.getElementById('labels-list') as HTMLDivElement;
+const newLabelInput = document.getElementById('new-label-input') as HTMLInputElement;
 const addBtn = document.getElementById('add-btn') as HTMLButtonElement;
 const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
-const importBtn = document.getElementById('import-btn') as HTMLButtonButtonElement;
+const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
 const importFile = document.getElementById('import-file') as HTMLInputElement;
 const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
 
 // Initial setup and event listeners
 document.addEventListener('DOMContentLoaded', async () => {
     const settings = await getSettings();
-    renderList(); // Initial render of labels
+    renderList(); // Initial render of tabs
 
     // Set initial theme selection
     if (themeSelect) {
@@ -33,21 +33,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-// Render the list of labels
+// Render the list of tabs
 async function renderList() {
     const settings = await getSettings();
+    if (!labelList) return;
     labelList.innerHTML = '';
 
-    settings.labels.forEach((label, index) => {
+    settings.tabs.forEach((tab, index) => {
         const li = document.createElement('li');
         li.draggable = true;
-        li.dataset.id = label.id;
+        li.dataset.id = tab.id;
         li.dataset.index = index.toString();
 
         li.innerHTML = `
       <div style="display: flex; align-items: center;">
         <span class="drag-handle">☰</span>
-        <span>${escapeHtml(label.name)}</span>
+        <span>${escapeHtml(tab.title)}</span>
+        ${tab.type === 'hash' ? '<small style="color:#888; margin-left:4px;">(Custom)</small>' : ''}
       </div>
       <button class="remove-btn" title="Remove">✕</button>
     `;
@@ -55,7 +57,7 @@ async function renderList() {
         // Remove handler
         const removeBtn = li.querySelector('.remove-btn') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
-            await removeLabel(label.id);
+            await removeTab(tab.id);
             renderList();
         });
 
@@ -70,63 +72,73 @@ async function renderList() {
     });
 }
 
-// Add new label
-addBtn.addEventListener('click', async () => {
-    const name = newLabelInput.value;
-    if (name) {
-        await addLabel(name);
-        newLabelInput.value = '';
-        renderList();
-    }
-});
+// Add new tab
+if (addBtn) {
+    addBtn.addEventListener('click', async () => {
+        const name = newLabelInput.value;
+        if (name) {
+            await addTab(name, name, 'label');
+            newLabelInput.value = '';
+            renderList();
+        }
+    });
+}
 
 // Allow Enter key to submit
-newLabelInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        addBtn.click();
-    }
-});
+if (newLabelInput) {
+    newLabelInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addBtn.click();
+        }
+    });
+}
 
 // Export settings
-exportBtn.addEventListener('click', async () => {
-    const settings = await getSettings();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-});
+if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+        const settings = await getSettings();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    });
+}
 
 // Import settings
-importBtn.addEventListener('click', () => {
-    importFile.click();
-});
+if (importBtn) {
+    importBtn.addEventListener('click', () => {
+        importFile.click();
+    });
+}
 
-importFile.addEventListener('change', (event) => {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+if (importFile) {
+    importFile.addEventListener('change', (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const content = e.target?.result as string;
-            const settings = JSON.parse(content);
-            if (Array.isArray(settings.labels)) {
-                await saveSettings(settings);
-                renderList();
-                alert('Settings imported successfully!');
-            } else {
-                alert('Invalid JSON format.');
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const content = e.target?.result as string;
+                const settings = JSON.parse(content);
+                if (Array.isArray(settings.tabs)) {
+                    await saveSettings(settings);
+                    renderList();
+                    alert('Settings imported successfully!');
+                } else {
+                    alert('Invalid JSON format.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error parsing JSON.');
             }
-        } catch (err) {
-            console.error(err);
-            alert('Error parsing JSON.');
-        }
-    };
-    reader.readAsText(file);
-});
+        };
+        reader.readAsText(file);
+    });
+}
 
 // Drag and Drop Logic
 let dragSrcEl: HTMLElement | null = null;
@@ -165,10 +177,10 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
         const newIndex = parseInt(this.dataset.index!);
 
         // Move item in array
-        const item = settings.labels.splice(oldIndex, 1)[0];
-        settings.labels.splice(newIndex, 0, item);
+        const item = settings.tabs.splice(oldIndex, 1)[0];
+        settings.tabs.splice(newIndex, 0, item);
 
-        await updateLabelOrder(settings.labels);
+        await updateTabOrder(settings.tabs);
         renderList();
     }
     return false;
@@ -185,5 +197,3 @@ function escapeHtml(text: string) {
     return text.replace(/[&<>"']/g, function (m) { return map[m]; });
 }
 
-// Initial render
-document.addEventListener('DOMContentLoaded', renderList);

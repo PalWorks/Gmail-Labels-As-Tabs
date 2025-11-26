@@ -2,13 +2,25 @@
 (() => {
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
-    labels: [],
+    tabs: [],
     theme: "system"
   };
   async function getSettings() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
-        resolve(items);
+      chrome.storage.sync.get(null, (items) => {
+        const settings = { ...DEFAULT_SETTINGS, ...items };
+        if (settings.labels && settings.labels.length > 0 && (!settings.tabs || settings.tabs.length === 0)) {
+          console.log("Migrating legacy labels to tabs...");
+          settings.tabs = settings.labels.map((l) => ({
+            id: l.id,
+            title: l.displayName || l.name,
+            type: "label",
+            value: l.name
+          }));
+          delete settings.labels;
+          chrome.storage.sync.set(settings);
+        }
+        resolve(settings);
       });
     });
   }
@@ -21,34 +33,35 @@
       });
     });
   }
-  async function addLabel(labelName) {
+  async function addTab(title, value, type = "label") {
     const settings = await getSettings();
-    const newLabel = {
-      name: labelName.trim(),
+    const newTab = {
       id: crypto.randomUUID(),
-      displayName: labelName.trim()
+      title: title.trim(),
+      value: value.trim(),
+      type
     };
-    if (!settings.labels.some((l) => l.name === newLabel.name)) {
-      settings.labels.push(newLabel);
+    if (!settings.tabs.some((t) => t.value === newTab.value)) {
+      settings.tabs.push(newTab);
       await saveSettings(settings);
     }
   }
-  async function removeLabel(labelId) {
+  async function removeTab(tabId) {
     const settings = await getSettings();
-    settings.labels = settings.labels.filter((l) => l.id !== labelId);
+    settings.tabs = settings.tabs.filter((t) => t.id !== tabId);
     await saveSettings(settings);
   }
-  async function updateLabel(labelId, updates) {
+  async function updateTab(tabId, updates) {
     const settings = await getSettings();
-    const index = settings.labels.findIndex((l) => l.id === labelId);
+    const index = settings.tabs.findIndex((t) => t.id === tabId);
     if (index !== -1) {
-      settings.labels[index] = { ...settings.labels[index], ...updates };
+      settings.tabs[index] = { ...settings.tabs[index], ...updates };
       await saveSettings(settings);
     }
   }
-  async function updateLabelOrder(newLabels) {
+  async function updateTabOrder(newTabs) {
     const settings = await getSettings();
-    settings.labels = newLabels;
+    settings.tabs = newTabs;
     await saveSettings(settings);
   }
 
@@ -67,8 +80,8 @@
     currentSettings = await getSettings();
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "sync") {
-        if (changes.labels) {
-          currentSettings.labels = changes.labels.newValue;
+        if (changes.tabs) {
+          currentSettings.tabs = changes.tabs.newValue;
           renderTabs();
         }
         if (changes.theme) {
@@ -152,12 +165,12 @@
       const oldIndex = parseInt(dragSrcEl.dataset.index || "0");
       const newIndex = parseInt(this.dataset.index || "0");
       if (currentSettings) {
-        const labels = [...currentSettings.labels];
-        const [movedLabel] = labels.splice(oldIndex, 1);
-        labels.splice(newIndex, 0, movedLabel);
-        currentSettings.labels = labels;
+        const tabs = [...currentSettings.tabs];
+        const [movedTab] = tabs.splice(oldIndex, 1);
+        tabs.splice(newIndex, 0, movedTab);
+        currentSettings.tabs = tabs;
         renderTabs();
-        await updateLabelOrder(labels);
+        await updateTabOrder(tabs);
       }
     }
     return false;
@@ -172,21 +185,22 @@
     const bar = document.getElementById(TABS_BAR_ID);
     if (!bar || !currentSettings) return;
     bar.innerHTML = "";
-    currentSettings.labels.forEach((label, index) => {
-      const tab = document.createElement("div");
-      tab.className = "gmail-tab";
-      tab.setAttribute("draggable", "true");
-      tab.dataset.index = index.toString();
-      tab.dataset.label = label.name;
+    currentSettings.tabs.forEach((tab, index) => {
+      const tabEl = document.createElement("div");
+      tabEl.className = "gmail-tab";
+      tabEl.setAttribute("draggable", "true");
+      tabEl.dataset.index = index.toString();
+      tabEl.dataset.value = tab.value;
+      tabEl.dataset.type = tab.type;
       const dragHandle = document.createElement("div");
       dragHandle.className = "tab-drag-handle";
       dragHandle.title = "Drag to reorder";
       dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
-      tab.appendChild(dragHandle);
+      tabEl.appendChild(dragHandle);
       const nameSpan = document.createElement("span");
       nameSpan.className = "tab-name";
-      nameSpan.textContent = label.displayName || label.name;
-      tab.appendChild(nameSpan);
+      nameSpan.textContent = tab.title;
+      tabEl.appendChild(nameSpan);
       const actions = document.createElement("div");
       actions.className = "tab-actions";
       const editBtn = document.createElement("div");
@@ -195,7 +209,7 @@
       editBtn.title = "Edit Tab";
       editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        showEditModal(label);
+        showEditModal(tab);
       });
       actions.appendChild(editBtn);
       const deleteBtn = document.createElement("div");
@@ -204,40 +218,106 @@
       deleteBtn.title = "Remove Tab";
       deleteBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        if (confirm(`Remove tab "${label.displayName || label.name}"?`)) {
-          await removeLabel(label.id);
+        if (confirm(`Remove tab "${tab.title}"?`)) {
+          await removeTab(tab.id);
           currentSettings = await getSettings();
           renderTabs();
         }
       });
       actions.appendChild(deleteBtn);
-      tab.appendChild(actions);
-      tab.addEventListener("click", (e) => {
+      tabEl.appendChild(actions);
+      tabEl.addEventListener("click", (e) => {
         if (e.target.closest(".tab-actions") || e.target.closest(".tab-drag-handle")) {
           return;
         }
-        window.location.href = getLabelUrl(label.name);
+        if (tab.type === "hash") {
+          window.location.hash = tab.value;
+        } else {
+          window.location.href = getLabelUrl(tab.value);
+        }
       });
-      tab.addEventListener("dragstart", handleDragStart);
-      tab.addEventListener("dragenter", handleDragEnter);
-      tab.addEventListener("dragover", handleDragOver);
-      tab.addEventListener("dragleave", handleDragLeave);
-      tab.addEventListener("drop", handleDrop);
-      tab.addEventListener("dragend", handleDragEnd);
-      bar.appendChild(tab);
+      tabEl.addEventListener("dragstart", handleDragStart);
+      tabEl.addEventListener("dragenter", handleDragEnter);
+      tabEl.addEventListener("dragover", handleDragOver);
+      tabEl.addEventListener("dragleave", handleDragLeave);
+      tabEl.addEventListener("drop", handleDrop);
+      tabEl.addEventListener("dragend", handleDragEnd);
+      bar.appendChild(tabEl);
     });
-    const addBtn = document.createElement("div");
-    addBtn.className = "add-tab-btn";
-    addBtn.innerHTML = "+";
-    addBtn.title = "Configure Tabs";
-    addBtn.addEventListener("click", (e) => {
+    const saveViewBtn = document.createElement("div");
+    saveViewBtn.className = "gmail-tab-btn save-view-btn";
+    saveViewBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>';
+    saveViewBtn.title = "Save Current View as Tab";
+    saveViewBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showPinModal();
+    });
+    bar.appendChild(saveViewBtn);
+    const manageBtn = document.createElement("div");
+    manageBtn.className = "gmail-tab-btn manage-btn";
+    manageBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    manageBtn.title = "Manage Tabs";
+    manageBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleSettingsModal();
     });
-    bar.appendChild(addBtn);
+    bar.appendChild(manageBtn);
     updateActiveTab();
   }
-  function showEditModal(label) {
+  function showPinModal() {
+    const currentHash = window.location.hash;
+    if (!currentHash || currentHash === "#inbox") {
+      alert("Cannot pin the Inbox. Navigate to a label or search first.");
+      return;
+    }
+    const modal = document.createElement("div");
+    modal.className = "gmail-tabs-modal";
+    let suggestedTitle = "New Tab";
+    if (currentHash.startsWith("#label/")) {
+      suggestedTitle = decodeURIComponent(currentHash.replace("#label/", "")).replace(/\+/g, " ");
+    } else if (currentHash.startsWith("#search/")) {
+      suggestedTitle = "Search: " + decodeURIComponent(currentHash.replace("#search/", "")).replace(/\+/g, " ");
+    } else if (currentHash.startsWith("#advanced-search/")) {
+      suggestedTitle = "Advanced Search";
+    }
+    modal.innerHTML = `
+        <div class="modal-content edit-tab-modal">
+            <div class="modal-header">
+                <h3>Pin Current View</h3>
+                <button class="close-btn">\u2715</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>View URL (Hash):</label>
+                    <input type="text" value="${currentHash}" disabled class="disabled-input">
+                </div>
+                <div class="form-group">
+                    <label>Tab Title:</label>
+                    <input type="text" id="pin-title" value="${suggestedTitle}">
+                </div>
+                <div class="modal-actions">
+                    <button id="pin-save-btn" class="primary-btn">Pin Tab</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector(".close-btn")?.addEventListener("click", close);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+    modal.querySelector("#pin-save-btn")?.addEventListener("click", async () => {
+      const title = modal.querySelector("#pin-title").value;
+      if (title) {
+        await addTab(title, currentHash, "hash");
+        close();
+        currentSettings = await getSettings();
+        renderTabs();
+      }
+    });
+  }
+  function showEditModal(tab) {
     const modal = document.createElement("div");
     modal.className = "gmail-tabs-modal";
     modal.innerHTML = `
@@ -248,12 +328,12 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Label name (Original):</label>
-                    <input type="text" value="${label.name}" disabled class="disabled-input">
+                    <label>Value (${tab.type}):</label>
+                    <input type="text" value="${tab.value}" disabled class="disabled-input">
                 </div>
                 <div class="form-group">
                     <label>Display Name:</label>
-                    <input type="text" id="edit-display-name" value="${label.displayName || label.name}">
+                    <input type="text" id="edit-display-name" value="${tab.title}">
                 </div>
                 <div class="modal-actions">
                     <button id="edit-save-btn" class="primary-btn">Save</button>
@@ -268,10 +348,10 @@
       if (e.target === modal) close();
     });
     modal.querySelector("#edit-save-btn")?.addEventListener("click", async () => {
-      const displayName = modal.querySelector("#edit-display-name").value;
-      if (displayName) {
-        await updateLabel(label.id, {
-          displayName: displayName.trim()
+      const title = modal.querySelector("#edit-display-name").value;
+      if (title) {
+        await updateTab(tab.id, {
+          title: title.trim()
         });
         close();
         currentSettings = await getSettings();
@@ -289,14 +369,21 @@
     if (!bar) return;
     const tabs = bar.querySelectorAll(".gmail-tab");
     tabs.forEach((t) => {
-      const tab = t;
-      const labelName = tab.dataset.label;
-      if (!labelName) return;
-      const cleanHash = decodeURIComponent(hash.replace("#label/", "").replace(/\+/g, " "));
-      if (cleanHash === labelName || hash.includes(`#label/${encodeURIComponent(labelName).replace(/%20/g, "+")}`)) {
-        tab.classList.add("active");
+      const tabEl = t;
+      const tabValue = tabEl.dataset.value;
+      const tabType = tabEl.dataset.type;
+      if (!tabValue) return;
+      let isActive = false;
+      if (tabType === "hash") {
+        isActive = hash === tabValue;
       } else {
-        tab.classList.remove("active");
+        const cleanHash = decodeURIComponent(hash.replace("#label/", "").replace(/\+/g, " "));
+        isActive = cleanHash === tabValue || hash.includes(`#label/${encodeURIComponent(tabValue).replace(/%20/g, "+")}`);
+      }
+      if (isActive) {
+        tabEl.classList.add("active");
+      } else {
+        tabEl.classList.remove("active");
       }
     });
   }
@@ -352,30 +439,30 @@
     const refreshList = async () => {
       const settings = await getSettings();
       list.innerHTML = "";
-      settings.labels.forEach((label, index) => {
+      settings.tabs.forEach((tab, index) => {
         const li = document.createElement("li");
         li.innerHTML = `
-                <span>${label.name}</span>
+                <span>${tab.title} <small style="color: #888; font-size: 0.8em;">(${tab.type})</small></span>
                 <div class="actions">
                     ${index > 0 ? '<button class="up-btn">\u2191</button>' : ""}
-                    ${index < settings.labels.length - 1 ? '<button class="down-btn">\u2193</button>' : ""}
+                    ${index < settings.tabs.length - 1 ? '<button class="down-btn">\u2193</button>' : ""}
                     <button class="remove-btn">\u2715</button>
                 </div>
             `;
         li.querySelector(".remove-btn")?.addEventListener("click", async () => {
-          await removeLabel(label.id);
+          await removeTab(tab.id);
           refreshList();
         });
         li.querySelector(".up-btn")?.addEventListener("click", async () => {
-          const newLabels = [...settings.labels];
-          [newLabels[index - 1], newLabels[index]] = [newLabels[index], newLabels[index - 1]];
-          await updateLabelOrder(newLabels);
+          const newTabs = [...settings.tabs];
+          [newTabs[index - 1], newTabs[index]] = [newTabs[index], newTabs[index - 1]];
+          await updateTabOrder(newTabs);
           refreshList();
         });
         li.querySelector(".down-btn")?.addEventListener("click", async () => {
-          const newLabels = [...settings.labels];
-          [newLabels[index + 1], newLabels[index]] = [newLabels[index], newLabels[index + 1]];
-          await updateLabelOrder(newLabels);
+          const newTabs = [...settings.tabs];
+          [newTabs[index + 1], newTabs[index]] = [newTabs[index], newTabs[index + 1]];
+          await updateTabOrder(newTabs);
           refreshList();
         });
         list.appendChild(li);
@@ -388,7 +475,7 @@
           value = value.substring(6).trim();
         }
         if (value) {
-          await addLabel(value);
+          await addTab(value, value, "label");
           input.value = "";
           refreshList();
         }

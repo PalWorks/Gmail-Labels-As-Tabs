@@ -1,202 +1,181 @@
-import { getSettings, saveSettings, addLabel, removeLabel, updateLabelOrder, TabLabel } from './utils/storage';
+/**
+ * popup.ts
+ *
+ * Script for the extension popup.
+ * Handles theme selection and tab configuration.
+ */
 
-document.addEventListener('DOMContentLoaded', async () => {
+import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, Settings, Tab } from './utils/storage';
+
+// --- Theme Logic ---
+const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+
+async function initTheme() {
     const settings = await getSettings();
-    const themeSelector = document.getElementById('theme-selector');
-    const options = document.querySelectorAll('.theme-option');
+    if (themeSelect) {
+        themeSelect.value = settings.theme;
+        themeSelect.addEventListener('change', async () => {
+            const newTheme = themeSelect.value as 'system' | 'light' | 'dark';
+            await saveSettings({ theme: newTheme });
+        });
+    }
+}
 
-    const labelList = document.getElementById('labels-list') as HTMLUListElement;
-    const newLabelInput = document.getElementById('new-label-input') as HTMLInputElement;
-    const addBtn = document.getElementById('add-btn') as HTMLButtonElement;
-    const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
-    const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
-    const importFile = document.getElementById('import-file') as HTMLInputElement;
+// --- Tab Configuration Logic ---
+const tabInput = document.getElementById('new-tab-input') as HTMLInputElement;
+const addTabBtn = document.getElementById('add-tab-btn') as HTMLButtonElement;
+const tabsList = document.getElementById('tabs-list') as HTMLUListElement;
 
-    let dragSrcEl: HTMLElement | null = null;
+async function initTabs() {
+    if (!tabsList) return; // Guard against missing elements
 
-    // --- Theme Logic ---
-    // Set initial state
-    updateActiveOption(settings.theme);
+    await renderTabsList();
 
-    themeSelector?.addEventListener('click', async (e) => {
-        const target = e.target as HTMLElement;
-        if (target.classList.contains('theme-option')) {
-            const value = target.dataset.value as 'system' | 'light' | 'dark';
-            updateActiveOption(value);
-            await saveSettings({ theme: value });
-        }
-    });
+    if (addTabBtn) {
+        addTabBtn.addEventListener('click', async () => {
+            await handleAddTab();
+        });
+    }
 
-    function updateActiveOption(value: string) {
-        options.forEach(opt => {
-            if ((opt as HTMLElement).dataset.value === value) {
-                opt.classList.add('active');
-            } else {
-                opt.classList.remove('active');
+    if (tabInput) {
+        tabInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                await handleAddTab();
             }
         });
     }
+}
 
-    // --- Tab Management Logic ---
-    renderList();
+async function handleAddTab() {
+    if (!tabInput) return;
 
-    async function renderList() {
-        const currentSettings = await getSettings();
-        labelList.innerHTML = '';
-
-        if (currentSettings.labels.length === 0) {
-            labelList.innerHTML = '<li style="padding:10px; text-align:center; color:#888; font-size:12px;">No tabs added yet.</li>';
-            return;
+    let value = tabInput.value.trim();
+    if (value) {
+        // Remove "label:" prefix if present (case-insensitive)
+        if (value.toLowerCase().startsWith('label:')) {
+            value = value.substring(6).trim();
         }
 
-        currentSettings.labels.forEach((label, index) => {
-            const li = document.createElement('li');
-            li.className = 'label-item';
-            li.setAttribute('draggable', 'true');
-            li.dataset.index = index.toString();
-            li.innerHTML = `
-                <div class="drag-handle" title="Drag to reorder">
-                    <svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-                </div>
-                <span class="label-name" title="${label.displayName || label.name}">${label.displayName || label.name}</span>
-                <button class="remove-btn" data-id="${label.id}">×</button>
-            `;
+        if (value) {
+            await addTab(value, value, 'label');
+            tabInput.value = '';
+            await renderTabsList();
+        }
+    }
+}
 
-            // Drag Events
-            li.addEventListener('dragstart', handleDragStart);
-            li.addEventListener('dragenter', handleDragEnter);
-            li.addEventListener('dragover', handleDragOver);
-            li.addEventListener('dragleave', handleDragLeave);
-            li.addEventListener('drop', handleDrop);
-            li.addEventListener('dragend', handleDragEnd);
+async function renderTabsList() {
+    const settings = await getSettings();
+    if (!tabsList) return;
 
-            labelList.appendChild(li);
+    tabsList.innerHTML = '';
+
+    settings.tabs.forEach((tab, index) => {
+        const li = document.createElement('li');
+        li.className = 'label-item';
+        li.setAttribute('draggable', 'true');
+        li.dataset.index = index.toString();
+
+        // Drag Handle
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
+        li.appendChild(dragHandle);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'label-name';
+        nameSpan.textContent = tab.title;
+        // Show type if it's a hash tab
+        if (tab.type === 'hash') {
+            const typeSpan = document.createElement('small');
+            typeSpan.style.color = '#888';
+            typeSpan.style.marginLeft = '4px';
+            typeSpan.textContent = '(Custom)';
+            nameSpan.appendChild(typeSpan);
+        }
+        li.appendChild(nameSpan);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove Tab';
+        removeBtn.addEventListener('click', async () => {
+            await removeTab(tab.id);
+            await renderTabsList();
         });
+        li.appendChild(removeBtn);
 
-        // Add remove listeners
-        document.querySelectorAll('.remove-btn').forEach((btn) => {
-            btn.addEventListener('click', async (e) => {
-                const id = (e.target as HTMLElement).dataset.id;
-                if (id) {
-                    await removeLabel(id);
-                    renderList();
-                }
-            });
-        });
-    }
+        // Drag Events
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragenter', handleDragEnter);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('dragleave', handleDragLeave);
+        li.addEventListener('drop', handleDrop);
+        li.addEventListener('dragend', handleDragEnd);
 
-    // Drag Handlers
-    function handleDragStart(e: DragEvent) {
-        dragSrcEl = e.target as HTMLElement;
-        (e.target as HTMLElement).classList.add('dragging');
-        e.dataTransfer!.effectAllowed = 'move';
-        // Store index
-        e.dataTransfer!.setData('text/plain', (e.target as HTMLElement).dataset.index || '');
-    }
-
-    function handleDragOver(e: DragEvent) {
-        if (e.preventDefault) {
-            e.preventDefault(); // Necessary. Allows us to drop.
-        }
-        e.dataTransfer!.dropEffect = 'move';
-        return false;
-    }
-
-    function handleDragEnter(e: DragEvent) {
-        (e.target as HTMLElement).closest('.label-item')?.classList.add('over');
-    }
-
-    function handleDragLeave(e: DragEvent) {
-        (e.target as HTMLElement).closest('.label-item')?.classList.remove('over');
-    }
-
-    async function handleDrop(e: DragEvent) {
-        if (e.stopPropagation) {
-            e.stopPropagation(); // stops the browser from redirecting.
-        }
-
-        const dropTarget = (e.target as HTMLElement).closest('.label-item') as HTMLElement;
-        if (dragSrcEl !== dropTarget && dropTarget) {
-            const oldIndex = parseInt(dragSrcEl!.dataset.index || '0');
-            const newIndex = parseInt(dropTarget.dataset.index || '0');
-
-            // Reorder
-            const s = await getSettings();
-            const labels = [...s.labels];
-            const [movedLabel] = labels.splice(oldIndex, 1);
-            labels.splice(newIndex, 0, movedLabel);
-
-            await updateLabelOrder(labels);
-            renderList();
-        }
-        return false;
-    }
-
-    function handleDragEnd(e: DragEvent) {
-        dragSrcEl = null;
-        document.querySelectorAll('.label-item').forEach(item => {
-            item.classList.remove('over', 'dragging');
-        });
-    }
-
-    // Add Label
-    addBtn.addEventListener('click', async () => {
-        const name = newLabelInput.value;
-        if (name) {
-            await addLabel(name);
-            newLabelInput.value = '';
-            renderList();
-        }
+        tabsList.appendChild(li);
     });
+}
 
-    newLabelInput.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            const name = newLabelInput.value;
-            if (name) {
-                await addLabel(name);
-                newLabelInput.value = '';
-                renderList();
-            }
-        }
+// --- Drag and Drop Logic ---
+let dragSrcEl: HTMLElement | null = null;
+
+function handleDragStart(this: HTMLElement, e: DragEvent) {
+    dragSrcEl = this;
+    this.classList.add('dragging');
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.index || '');
+    }
+}
+
+function handleDragOver(e: DragEvent) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+    }
+    return false;
+}
+
+function handleDragEnter(this: HTMLElement, e: DragEvent) {
+    this.classList.add('over');
+}
+
+function handleDragLeave(this: HTMLElement, e: DragEvent) {
+    this.classList.remove('over');
+}
+
+async function handleDrop(this: HTMLElement, e: DragEvent) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    if (dragSrcEl !== this) {
+        const oldIndex = parseInt(dragSrcEl!.dataset.index || '0');
+        const newIndex = parseInt(this.dataset.index || '0');
+
+        const settings = await getSettings();
+        const tabs = [...settings.tabs];
+        const [movedTab] = tabs.splice(oldIndex, 1);
+        tabs.splice(newIndex, 0, movedTab);
+
+        await updateTabOrder(tabs);
+        await renderTabsList();
+    }
+    return false;
+}
+
+function handleDragEnd(this: HTMLElement, e: DragEvent) {
+    dragSrcEl = null;
+    document.querySelectorAll('.label-item').forEach(item => {
+        item.classList.remove('over', 'dragging');
     });
+}
 
-    // Export JSON
-    exportBtn.addEventListener('click', async () => {
-        const s = await getSettings();
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(s.labels, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "gmail_tabs_config.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-    });
-
-    // Import JSON
-    importBtn.addEventListener('click', () => {
-        importFile.click();
-    });
-
-    importFile.addEventListener('change', (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const content = e.target?.result as string;
-                const labels = JSON.parse(content) as TabLabel[];
-                if (Array.isArray(labels)) {
-                    await saveSettings({ labels });
-                    renderList();
-                    alert('Tabs imported successfully!');
-                } else {
-                    alert('Invalid JSON format.');
-                }
-            } catch (err) {
-                alert('Error parsing JSON.');
-            }
-        };
-        reader.readAsText(file);
-    });
+// --- Init ---
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initTabs();
 });

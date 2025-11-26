@@ -2,13 +2,25 @@
 (() => {
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
-    labels: [],
+    tabs: [],
     theme: "system"
   };
   async function getSettings() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
-        resolve(items);
+      chrome.storage.sync.get(null, (items) => {
+        const settings = { ...DEFAULT_SETTINGS, ...items };
+        if (settings.labels && settings.labels.length > 0 && (!settings.tabs || settings.tabs.length === 0)) {
+          console.log("Migrating legacy labels to tabs...");
+          settings.tabs = settings.labels.map((l) => ({
+            id: l.id,
+            title: l.displayName || l.name,
+            type: "label",
+            value: l.name
+          }));
+          delete settings.labels;
+          chrome.storage.sync.set(settings);
+        }
+        resolve(settings);
       });
     });
   }
@@ -21,26 +33,27 @@
       });
     });
   }
-  async function addLabel(labelName) {
+  async function addTab(title, value, type = "label") {
     const settings = await getSettings();
-    const newLabel = {
-      name: labelName.trim(),
+    const newTab = {
       id: crypto.randomUUID(),
-      displayName: labelName.trim()
+      title: title.trim(),
+      value: value.trim(),
+      type
     };
-    if (!settings.labels.some((l) => l.name === newLabel.name)) {
-      settings.labels.push(newLabel);
+    if (!settings.tabs.some((t) => t.value === newTab.value)) {
+      settings.tabs.push(newTab);
       await saveSettings(settings);
     }
   }
-  async function removeLabel(labelId) {
+  async function removeTab(tabId) {
     const settings = await getSettings();
-    settings.labels = settings.labels.filter((l) => l.id !== labelId);
+    settings.tabs = settings.tabs.filter((t) => t.id !== tabId);
     await saveSettings(settings);
   }
-  async function updateLabelOrder(newLabels) {
+  async function updateTabOrder(newTabs) {
     const settings = await getSettings();
-    settings.labels = newLabels;
+    settings.tabs = newTabs;
     await saveSettings(settings);
   }
 
@@ -65,22 +78,24 @@
   });
   async function renderList() {
     const settings = await getSettings();
+    if (!labelList) return;
     labelList.innerHTML = "";
-    settings.labels.forEach((label, index) => {
+    settings.tabs.forEach((tab, index) => {
       const li = document.createElement("li");
       li.draggable = true;
-      li.dataset.id = label.id;
+      li.dataset.id = tab.id;
       li.dataset.index = index.toString();
       li.innerHTML = `
       <div style="display: flex; align-items: center;">
         <span class="drag-handle">\u2630</span>
-        <span>${escapeHtml(label.name)}</span>
+        <span>${escapeHtml(tab.title)}</span>
+        ${tab.type === "hash" ? '<small style="color:#888; margin-left:4px;">(Custom)</small>' : ""}
       </div>
       <button class="remove-btn" title="Remove">\u2715</button>
     `;
       const removeBtn = li.querySelector(".remove-btn");
       removeBtn.addEventListener("click", async () => {
-        await removeLabel(label.id);
+        await removeTab(tab.id);
         renderList();
       });
       li.addEventListener("dragstart", handleDragStart);
@@ -91,54 +106,64 @@
       labelList.appendChild(li);
     });
   }
-  addBtn.addEventListener("click", async () => {
-    const name = newLabelInput.value;
-    if (name) {
-      await addLabel(name);
-      newLabelInput.value = "";
-      renderList();
-    }
-  });
-  newLabelInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      addBtn.click();
-    }
-  });
-  exportBtn.addEventListener("click", async () => {
-    const settings = await getSettings();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
-    const downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  });
-  importBtn.addEventListener("click", () => {
-    importFile.click();
-  });
-  importFile.addEventListener("change", (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const content = e.target?.result;
-        const settings = JSON.parse(content);
-        if (Array.isArray(settings.labels)) {
-          await saveSettings(settings);
-          renderList();
-          alert("Settings imported successfully!");
-        } else {
-          alert("Invalid JSON format.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error parsing JSON.");
+  if (addBtn) {
+    addBtn.addEventListener("click", async () => {
+      const name = newLabelInput.value;
+      if (name) {
+        await addTab(name, name, "label");
+        newLabelInput.value = "";
+        renderList();
       }
-    };
-    reader.readAsText(file);
-  });
+    });
+  }
+  if (newLabelInput) {
+    newLabelInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        addBtn.click();
+      }
+    });
+  }
+  if (exportBtn) {
+    exportBtn.addEventListener("click", async () => {
+      const settings = await getSettings();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    });
+  }
+  if (importBtn) {
+    importBtn.addEventListener("click", () => {
+      importFile.click();
+    });
+  }
+  if (importFile) {
+    importFile.addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result;
+          const settings = JSON.parse(content);
+          if (Array.isArray(settings.tabs)) {
+            await saveSettings(settings);
+            renderList();
+            alert("Settings imported successfully!");
+          } else {
+            alert("Invalid JSON format.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Error parsing JSON.");
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
   var dragSrcEl = null;
   function handleDragStart(e) {
     dragSrcEl = this;
@@ -167,9 +192,9 @@
       const settings = await getSettings();
       const oldIndex = parseInt(dragSrcEl.dataset.index);
       const newIndex = parseInt(this.dataset.index);
-      const item = settings.labels.splice(oldIndex, 1)[0];
-      settings.labels.splice(newIndex, 0, item);
-      await updateLabelOrder(settings.labels);
+      const item = settings.tabs.splice(oldIndex, 1)[0];
+      settings.tabs.splice(newIndex, 0, item);
+      await updateTabOrder(settings.tabs);
       renderList();
     }
     return false;
@@ -186,6 +211,5 @@
       return map[m];
     });
   }
-  document.addEventListener("DOMContentLoaded", renderList);
 })();
 //# sourceMappingURL=options.js.map
