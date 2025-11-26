@@ -8,6 +8,7 @@
 export interface TabLabel {
     name: string;
     id: string; // Unique ID for drag and drop
+    displayName?: string;
 }
 
 export interface Settings {
@@ -48,6 +49,7 @@ export async function addLabel(labelName: string): Promise<void> {
     const newLabel: TabLabel = {
         name: labelName.trim(),
         id: crypto.randomUUID(),
+        displayName: labelName.trim(),
     };
     // Avoid duplicates
     if (!settings.labels.some((l) => l.name === newLabel.name)) {
@@ -63,6 +65,18 @@ export async function removeLabel(labelId: string): Promise<void> {
     const settings = await getSettings();
     settings.labels = settings.labels.filter((l) => l.id !== labelId);
     await saveSettings(settings);
+}
+
+/**
+ * Updates an existing label.
+ */
+export async function updateLabel(labelId: string, updates: Partial<TabLabel>): Promise<void> {
+    const settings = await getSettings();
+    const index = settings.labels.findIndex((l) => l.id === labelId);
+    if (index !== -1) {
+        settings.labels[index] = { ...settings.labels[index], ...updates };
+        await saveSettings(settings);
+    }
 }
 
 /**

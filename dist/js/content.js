@@ -22,7 +22,8 @@
     const settings = await getSettings();
     const newLabel = {
       name: labelName.trim(),
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
+      displayName: labelName.trim()
     };
     if (!settings.labels.some((l) => l.name === newLabel.name)) {
       settings.labels.push(newLabel);
@@ -33,6 +34,14 @@
     const settings = await getSettings();
     settings.labels = settings.labels.filter((l) => l.id !== labelId);
     await saveSettings(settings);
+  }
+  async function updateLabel(labelId, updates) {
+    const settings = await getSettings();
+    const index = settings.labels.findIndex((l) => l.id === labelId);
+    if (index !== -1) {
+      settings.labels[index] = { ...settings.labels[index], ...updates };
+      await saveSettings(settings);
+    }
   }
   async function updateLabelOrder(newLabels) {
     const settings = await getSettings();
@@ -62,6 +71,11 @@
     attemptInjection();
     startObserver();
     window.addEventListener("popstate", handleUrlChange);
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === "TOGGLE_SETTINGS") {
+        toggleSettingsModal();
+      }
+    });
   }
   function attemptInjection() {
     const existingBar = document.getElementById(TABS_BAR_ID);
@@ -100,11 +114,41 @@
     if (!bar || !currentSettings) return;
     bar.innerHTML = "";
     currentSettings.labels.forEach((label) => {
-      const tab = document.createElement("a");
+      const tab = document.createElement("div");
       tab.className = "gmail-tab";
-      tab.textContent = label.name;
-      tab.href = getLabelUrl(label.name);
       tab.dataset.label = label.name;
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "tab-name";
+      nameSpan.textContent = label.displayName || label.name;
+      tab.appendChild(nameSpan);
+      const actions = document.createElement("div");
+      actions.className = "tab-actions";
+      const editBtn = document.createElement("div");
+      editBtn.className = "tab-action-btn edit-btn";
+      editBtn.innerHTML = "\u22EE";
+      editBtn.title = "Edit Tab";
+      editBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showEditModal(label);
+      });
+      actions.appendChild(editBtn);
+      const deleteBtn = document.createElement("div");
+      deleteBtn.className = "tab-action-btn delete-btn";
+      deleteBtn.innerHTML = "\u2715";
+      deleteBtn.title = "Remove Tab";
+      deleteBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (confirm(`Remove tab "${label.displayName || label.name}"?`)) {
+          await removeLabel(label.id);
+          currentSettings = await getSettings();
+          renderTabs();
+        }
+      });
+      actions.appendChild(deleteBtn);
+      tab.appendChild(actions);
+      tab.addEventListener("click", () => {
+        window.location.href = getLabelUrl(label.name);
+      });
       bar.appendChild(tab);
     });
     const addBtn = document.createElement("div");
@@ -117,6 +161,48 @@
     });
     bar.appendChild(addBtn);
     updateActiveTab();
+  }
+  function showEditModal(label) {
+    const modal = document.createElement("div");
+    modal.className = "gmail-tabs-modal";
+    modal.innerHTML = `
+        <div class="modal-content edit-tab-modal">
+            <div class="modal-header">
+                <h3>Edit Tab</h3>
+                <button class="close-btn">\u2715</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Label name (Original):</label>
+                    <input type="text" value="${label.name}" disabled class="disabled-input">
+                </div>
+                <div class="form-group">
+                    <label>Display Name:</label>
+                    <input type="text" id="edit-display-name" value="${label.displayName || label.name}">
+                </div>
+                <div class="modal-actions">
+                    <button id="edit-save-btn" class="primary-btn">Save</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector(".close-btn")?.addEventListener("click", close);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+    modal.querySelector("#edit-save-btn")?.addEventListener("click", async () => {
+      const displayName = modal.querySelector("#edit-display-name").value;
+      if (displayName) {
+        await updateLabel(label.id, {
+          displayName: displayName.trim()
+        });
+        close();
+        currentSettings = await getSettings();
+        renderTabs();
+      }
+    });
   }
   function getLabelUrl(labelName) {
     const encoded = encodeURIComponent(labelName).replace(/%20/g, "+");
@@ -221,18 +307,123 @@
       });
     };
     addBtn.addEventListener("click", async () => {
-      if (input.value) {
-        await addLabel(input.value);
-        input.value = "";
-        refreshList();
+      let value = input.value.trim();
+      if (value) {
+        if (value.toLowerCase().startsWith("label:")) {
+          value = value.substring(6).trim();
+        }
+        if (value) {
+          await addLabel(value);
+          input.value = "";
+          refreshList();
+        }
       }
     });
     refreshList();
+  }
+  function initLabelDropdownObserver() {
+    const observer2 = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLElement) {
+            if (node.classList.contains("J-M") || node.querySelector(".J-M")) {
+              handleMenuOpen(node);
+            }
+          }
+        }
+      }
+    });
+    observer2.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+  function handleMenuOpen(container) {
+    const menu = container.classList.contains("J-M") ? container : container.querySelector(".J-M");
+    if (!menu) return;
+    const labelColorItem = Array.from(menu.querySelectorAll("div")).find((el) => el.textContent === "Label colour" || el.textContent === "Label color");
+    if (labelColorItem) {
+      injectLabelOptions(menu);
+    }
+  }
+  function injectLabelOptions(menu) {
+    if (menu.querySelector(".gmail-tabs-option")) return;
+    const separator = menu.querySelector(".J-M-Jz");
+    const addToTabsItem = createMenuItem("Add to tabs", async () => {
+      const labelName = getLabelNameFromTrigger();
+      if (labelName) {
+        await addLabel(labelName);
+        renderTabs();
+        menu.style.display = "none";
+      }
+    });
+    const addWithSubItem = createMenuItem("Add to tabs (including sublabels)", async () => {
+      const labelName = getLabelNameFromTrigger();
+      if (labelName) {
+        await addLabel(labelName);
+        renderTabs();
+        menu.style.display = "none";
+      }
+    });
+    if (menu.firstChild) {
+      menu.insertBefore(addWithSubItem, menu.firstChild);
+      menu.insertBefore(addToTabsItem, menu.firstChild);
+      const sep = document.createElement("div");
+      sep.className = "J-M-Jz gmail-tabs-separator";
+      sep.setAttribute("role", "separator");
+      sep.style.userSelect = "none";
+      menu.insertBefore(sep, addWithSubItem.nextSibling?.nextSibling || null);
+    }
+  }
+  function createMenuItem(text, onClick) {
+    const item = document.createElement("div");
+    item.className = "J-N J-Ks gmail-tabs-option";
+    item.setAttribute("role", "menuitem");
+    item.style.userSelect = "none";
+    item.innerHTML = `
+        <div class="J-N-Jz">
+            <div class="J-N-C">
+                <div class="J-N-J5"></div>
+            </div>
+            <div class="J-N-T">${text}</div>
+        </div>
+    `;
+    item.addEventListener("mouseenter", () => {
+      item.classList.add("J-N-JT");
+    });
+    item.addEventListener("mouseleave", () => {
+      item.classList.remove("J-N-JT");
+    });
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onClick();
+    });
+    return item;
+  }
+  function getLabelNameFromTrigger() {
+    const activeBtn = document.querySelector('div[aria-expanded="true"][role="button"], span[aria-expanded="true"]');
+    if (activeBtn) {
+      let parent = activeBtn.parentElement;
+      while (parent && parent.tagName !== "BODY") {
+        const labelNameEl = parent.querySelector("[title]");
+        if (labelNameEl) {
+          const title = labelNameEl.getAttribute("title");
+          if (title && title !== "Label colour") return title;
+        }
+        if (parent.getAttribute("title")) {
+          return parent.getAttribute("title");
+        }
+        parent = parent.parentElement;
+        if (parent && parent.classList.contains("aim")) break;
+      }
+    }
+    return null;
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
+  initLabelDropdownObserver();
 })();
 //# sourceMappingURL=content.js.map

@@ -11,6 +11,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+chrome.action.onClicked.addListener((tab) => {
+    if (tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action: "TOGGLE_SETTINGS" });
+    }
+});
+
 // Optional: Install hook
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {

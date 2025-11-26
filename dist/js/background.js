@@ -6,6 +6,11 @@
       chrome.runtime.openOptionsPage();
     }
   });
+  chrome.action.onClicked.addListener((tab) => {
+    if (tab.id) {
+      chrome.tabs.sendMessage(tab.id, { action: "TOGGLE_SETTINGS" });
+    }
+  });
   chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
       const defaultLabels = [

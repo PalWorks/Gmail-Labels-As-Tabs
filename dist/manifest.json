@@ -11,8 +11,13 @@
     "https://mail.google.com/*"
   ],
   "action": {
-    "default_popup": "options.html",
-    "default_title": "Gmail Labels as Tabs"
+    "default_title": "Gmail Labels as Tabs",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "options_ui": {
     "page": "options.html",
@@ -20,14 +25,21 @@
   },
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
-      "js": ["js/content.js"],
-      "css": ["css/toolbar.css"],
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "js": [
+        "js/content.js"
+      ],
+      "css": [
+        "css/toolbar.css"
+      ],
       "run_at": "document_end"
     }
   ],

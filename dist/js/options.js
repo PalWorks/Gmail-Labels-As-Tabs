@@ -22,7 +22,8 @@
     const settings = await getSettings();
     const newLabel = {
       name: labelName.trim(),
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
+      displayName: labelName.trim()
     };
     if (!settings.labels.some((l) => l.name === newLabel.name)) {
       settings.labels.push(newLabel);
