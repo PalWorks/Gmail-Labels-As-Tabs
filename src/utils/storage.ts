@@ -24,11 +24,13 @@ export interface Settings {
     // Legacy support for migration
     labels?: LegacyTabLabel[];
     theme: 'system' | 'light' | 'dark';
+    showUnreadCount: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
     tabs: [],
-    theme: 'system'
+    theme: 'system',
+    showUnreadCount: false
 };
 
 /**

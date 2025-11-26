@@ -687,3 +687,42 @@ body.force-light {
     margin-bottom: 16px;
     margin-left: 2px;
 }
+
+/* Unread Count Badge */
+.unread-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gmail-tab-text);
+    margin-left: 4px;
+    opacity: 0.8;
+}
+
+.gmail-tab.active .unread-count {
+    color: var(--gmail-tab-active-text);
+    opacity: 1;
+}
+
+/* Checkbox Toggle */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* Align left */
+    margin-bottom: 16px;
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    cursor: pointer;
+    margin-left: 8px;
+    /* Space between checkbox and text */
+    flex: 1;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+}

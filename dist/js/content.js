@@ -3,7 +3,8 @@
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
     tabs: [],
-    theme: "system"
+    theme: "system",
+    showUnreadCount: false
   };
   async function getSettings() {
     return new Promise((resolve) => {
@@ -158,6 +159,13 @@
       nameSpan.className = "tab-name";
       nameSpan.textContent = tab.title;
       tabEl.appendChild(nameSpan);
+      if (currentSettings.showUnreadCount) {
+        const countSpan = document.createElement("span");
+        countSpan.className = "unread-count";
+        countSpan.textContent = "";
+        tabEl.appendChild(countSpan);
+        updateUnreadCount(tab, tabEl);
+      }
       const actions = document.createElement("div");
       actions.className = "tab-actions";
       const editBtn = document.createElement("div");
@@ -380,6 +388,7 @@
                         <button class="theme-btn" data-theme="dark">Dark</button>
                     </div>
                 </div>
+                
                 <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 
                 <div class="add-tab-section">
@@ -394,6 +403,13 @@
                 </div>
                 <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 <ul id="modal-labels-list"></ul>
+
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="modal-unread-toggle">
+                    <label for="modal-unread-toggle">Show Unread Count</label>
+                </div>
             </div>
         </div>
     `;
@@ -610,6 +626,120 @@
         applyTheme(theme);
       });
     });
+    const unreadToggle = modal.querySelector("#modal-unread-toggle");
+    getSettings().then((settings) => {
+      unreadToggle.checked = settings.showUnreadCount;
+    });
+    unreadToggle.addEventListener("change", async () => {
+      await saveSettings({ showUnreadCount: unreadToggle.checked });
+      currentSettings = await getSettings();
+      renderTabs();
+    });
+  }
+  function normalizeLabel(name) {
+    return decodeURIComponent(name).toLowerCase().replace(/[\/\-_]/g, " ").replace(/\s+/g, " ").trim();
+  }
+  async function updateUnreadCount(tab, tabEl) {
+    const countSpan = tabEl.querySelector(".unread-count");
+    if (!countSpan) return;
+    let labelForFeed = "";
+    if (tab.type === "label") {
+      labelForFeed = tab.value;
+    } else if (tab.type === "hash") {
+      if (tab.value === "#inbox") {
+        labelForFeed = "";
+      } else if (tab.value.startsWith("#label/")) {
+        labelForFeed = tab.value.replace("#label/", "");
+      }
+    }
+    if (labelForFeed !== void 0) {
+      try {
+        const encodedLabel = labelForFeed ? encodeURIComponent(labelForFeed) : "";
+        const feedUrl = `${location.origin}${location.pathname}feed/atom/${encodedLabel}`;
+        const response = await fetch(feedUrl);
+        if (response.ok) {
+          const text = await response.text();
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(text, "text/xml");
+          const fullcount = xmlDoc.querySelector("fullcount");
+          if (fullcount && fullcount.textContent) {
+            const count = parseInt(fullcount.textContent, 10);
+            if (count > 0) {
+              countSpan.textContent = count.toString();
+              return;
+            } else {
+              countSpan.textContent = "";
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Gmail Tabs: Failed to fetch atom feed for", labelForFeed, e);
+      }
+    }
+    const domCount = getUnreadCountFromDOM(tab);
+    if (domCount) {
+      countSpan.textContent = domCount;
+    } else {
+      countSpan.textContent = "";
+    }
+  }
+  function getUnreadCountFromDOM(tab) {
+    if (tab.type === "hash" && !tab.value.startsWith("#label/")) {
+      if (tab.value === "#inbox") {
+        const link2 = document.querySelector('a[href$="#inbox"]');
+        if (link2) {
+          const ariaLabel = link2.getAttribute("aria-label");
+          if (ariaLabel) {
+            const match = ariaLabel.match(/(\d+)\s+unread/);
+            return match ? match[1] : "";
+          }
+        }
+      }
+      return "";
+    }
+    let labelName = tab.value;
+    if (tab.type === "hash" && tab.value.startsWith("#label/")) {
+      labelName = tab.value.replace("#label/", "");
+    }
+    const encodedLabel = encodeURIComponent(labelName).replace(/%20/g, "+");
+    const hrefSuffix = "#label/" + encodedLabel;
+    let link = document.querySelector('a[href$="' + hrefSuffix + '"]');
+    if (!link) {
+      const normalizedTarget = normalizeLabel(labelName);
+      const candidates = document.querySelectorAll('a[href*="#label/"]');
+      for (const candidate of candidates) {
+        const title = candidate.getAttribute("title");
+        if (title && normalizeLabel(title) === normalizedTarget) {
+          link = candidate;
+          break;
+        }
+        const ariaLabel = candidate.getAttribute("aria-label");
+        if (ariaLabel) {
+          const normAria = normalizeLabel(ariaLabel);
+          const href = candidate.getAttribute("href");
+          if (href) {
+            const hrefLabel = href.split("#label/")[1];
+            if (hrefLabel && normalizeLabel(hrefLabel) === normalizedTarget) {
+              link = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
+    if (link) {
+      const ariaLabel = link.getAttribute("aria-label");
+      if (ariaLabel) {
+        const match = ariaLabel.match(/(\d+)\s+unread/);
+        return match ? match[1] : "";
+      }
+      const countEl = link.querySelector(".bsU");
+      if (countEl) {
+        return countEl.textContent || "";
+      }
+    }
+    return "";
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

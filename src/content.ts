@@ -205,6 +205,18 @@ function renderTabs() {
         nameSpan.textContent = tab.title;
         tabEl.appendChild(nameSpan);
 
+        // Unread Count
+        if (currentSettings.showUnreadCount) {
+            const countSpan = document.createElement('span');
+            countSpan.className = 'unread-count';
+            // Placeholder or empty initially
+            countSpan.textContent = '';
+            tabEl.appendChild(countSpan);
+
+            // Trigger async update
+            updateUnreadCount(tab, tabEl);
+        }
+
         const actions = document.createElement('div');
         actions.className = 'tab-actions';
 
@@ -485,6 +497,7 @@ function createSettingsModal() {
                         <button class="theme-btn" data-theme="dark">Dark</button>
                     </div>
                 </div>
+                
                 <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 
                 <div class="add-tab-section">
@@ -499,6 +512,13 @@ function createSettingsModal() {
                 </div>
                 <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 <ul id="modal-labels-list"></ul>
+
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="modal-unread-toggle">
+                    <label for="modal-unread-toggle">Show Unread Count</label>
+                </div>
             </div>
         </div>
     `;
@@ -786,6 +806,192 @@ function createSettingsModal() {
             // currentSettings will be updated via storage listener
         });
     });
+
+    // Unread Count Toggle Logic
+    const unreadToggle = modal.querySelector('#modal-unread-toggle') as HTMLInputElement;
+
+    getSettings().then(settings => {
+        unreadToggle.checked = settings.showUnreadCount;
+    });
+
+    unreadToggle.addEventListener('change', async () => {
+        await saveSettings({ showUnreadCount: unreadToggle.checked });
+        currentSettings = await getSettings();
+        renderTabs();
+    });
+}
+
+/**
+ * Normalize label name for fuzzy matching
+ * - Lowercase
+ * - Replace separators (/, -, _) with space
+ * - Remove extra spaces
+ */
+function normalizeLabel(name: string): string {
+    return decodeURIComponent(name)
+        .toLowerCase()
+        .replace(/[\/\-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Helper to update unread count using Atom Feed (Robust)
+ * Falls back to DOM scraping if needed.
+ */
+async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
+    const countSpan = tabEl.querySelector('.unread-count');
+    if (!countSpan) return;
+
+    let labelForFeed = '';
+
+    // Determine Label for Feed
+    if (tab.type === 'label') {
+        labelForFeed = tab.value;
+    } else if (tab.type === 'hash') {
+        if (tab.value === '#inbox') {
+            labelForFeed = ''; // Empty for Inbox
+        } else if (tab.value.startsWith('#label/')) {
+            labelForFeed = tab.value.replace('#label/', '');
+        }
+    }
+
+    // If we identified a label, try fetching the feed
+    if (labelForFeed !== undefined) { // labelForFeed can be '' for inbox
+        try {
+            // Use current user's feed (u/0 is usually safe, or relative path)
+            // We use relative path to handle multiple accounts (u/1, u/2) correctly if running in that context
+            // The content script runs in the context of the specific tab/user, so relative path '/mail/feed/atom/' 
+            // might default to u/0. To be safe, we can try to detect the base URL or just use relative.
+            // Actually, just 'feed/atom/' relative to current page might work if we are at mail.google.com/mail/u/X/
+
+            // Construct feed URL
+            // If labelForFeed is empty, it's the inbox feed.
+            // If it's a label, append it.
+            // We need to encode the label properly.
+            const encodedLabel = labelForFeed ? encodeURIComponent(labelForFeed) : '';
+            const feedUrl = `${location.origin}${location.pathname}feed/atom/${encodedLabel}`;
+
+            const response = await fetch(feedUrl);
+            if (response.ok) {
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                const fullcount = xmlDoc.querySelector('fullcount');
+
+                if (fullcount && fullcount.textContent) {
+                    const count = parseInt(fullcount.textContent, 10);
+                    if (count > 0) {
+                        countSpan.textContent = count.toString();
+                        return; // Success
+                    } else {
+                        // Count is 0, hide or empty
+                        countSpan.textContent = '';
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Gmail Tabs: Failed to fetch atom feed for', labelForFeed, e);
+        }
+    }
+
+    // Fallback: DOM Scraping (Original Logic)
+    // Useful for search queries or if feed fails
+    const domCount = getUnreadCountFromDOM(tab);
+    if (domCount) {
+        countSpan.textContent = domCount;
+    } else {
+        countSpan.textContent = '';
+    }
+}
+
+/**
+ * Legacy DOM Scraping (Fallback)
+ */
+function getUnreadCountFromDOM(tab: Tab): string {
+    if (tab.type === 'hash' && !tab.value.startsWith('#label/')) {
+        // Special case: Inbox
+        if (tab.value === '#inbox') {
+            const link = document.querySelector('a[href$="#inbox"]');
+            if (link) {
+                const ariaLabel = link.getAttribute('aria-label');
+                if (ariaLabel) {
+                    const match = ariaLabel.match(/(\d+)\s+unread/);
+                    return match ? match[1] : '';
+                }
+            }
+        }
+        return '';
+    }
+
+    // For Labels (and hash labels)
+    let labelName = tab.value;
+    if (tab.type === 'hash' && tab.value.startsWith('#label/')) {
+        labelName = tab.value.replace('#label/', '');
+    }
+
+    // Strategy 1: Exact Href Match (Fastest)
+    const encodedLabel = encodeURIComponent(labelName).replace(/%20/g, '+');
+    const hrefSuffix = '#' + 'label/' + encodedLabel;
+    let link = document.querySelector('a[href$="' + hrefSuffix + '"]');
+
+    // Strategy 2: Fuzzy Match on Title/Aria-Label (Robust)
+    if (!link) {
+        const normalizedTarget = normalizeLabel(labelName);
+
+        // Get all label links in sidebar (usually have href containing #label/)
+        const candidates = document.querySelectorAll('a[href*="#label/"]');
+
+        for (const candidate of candidates) {
+            // Check Title
+            const title = candidate.getAttribute('title');
+            if (title && normalizeLabel(title) === normalizedTarget) {
+                link = candidate;
+                break;
+            }
+
+            // Check Aria-Label (e.g., "LabelName 5 unread messages")
+            const ariaLabel = candidate.getAttribute('aria-label');
+            if (ariaLabel) {
+                // Extract the label name part from aria-label? 
+                // It's hard because aria-label structure varies.
+                // But we can check if it *starts with* the label name (fuzzy)
+                // or if the normalized aria-label contains the normalized target
+                const normAria = normalizeLabel(ariaLabel);
+                // Check if normAria starts with normalizedTarget
+                // Be careful of partial matches (e.g. "Work" matching "Work/Project")
+                // But usually exact match is better.
+
+                // Let's try to extract the href label part and compare that
+                const href = candidate.getAttribute('href');
+                if (href) {
+                    const hrefLabel = href.split('#label/')[1];
+                    if (hrefLabel && normalizeLabel(hrefLabel) === normalizedTarget) {
+                        link = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (link) {
+        const ariaLabel = link.getAttribute('aria-label');
+        if (ariaLabel) {
+            // Format: "LabelName 5 unread"
+            const match = ariaLabel.match(/(\d+)\s+unread/);
+            return match ? match[1] : '';
+        }
+
+        // Fallback: Look for child .bsU element
+        const countEl = link.querySelector('.bsU');
+        if (countEl) {
+            return countEl.textContent || '';
+        }
+    }
+
+    return '';
 }
 
 // Run init

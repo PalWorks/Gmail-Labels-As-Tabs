@@ -3,7 +3,8 @@
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
     tabs: [],
-    theme: "system"
+    theme: "system",
+    showUnreadCount: false
   };
   async function getSettings() {
     return new Promise((resolve) => {
