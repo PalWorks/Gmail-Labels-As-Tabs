@@ -13,10 +13,12 @@ export interface TabLabel {
 
 export interface Settings {
     labels: TabLabel[];
+    theme: 'system' | 'light' | 'dark';
 }
 
 const DEFAULT_SETTINGS: Settings = {
     labels: [],
+    theme: 'system'
 };
 
 /**
@@ -32,10 +34,13 @@ export async function getSettings(): Promise<Settings> {
 
 /**
  * Saves the settings to storage.
+ * Merges the provided settings with existing ones.
  */
-export async function saveSettings(settings: Settings): Promise<void> {
+export async function saveSettings(newSettings: Partial<Settings>): Promise<void> {
+    const currentSettings = await getSettings();
+    const mergedSettings = { ...currentSettings, ...newSettings };
     return new Promise((resolve) => {
-        chrome.storage.sync.set(settings, () => {
+        chrome.storage.sync.set(mergedSettings, () => {
             resolve();
         });
     });

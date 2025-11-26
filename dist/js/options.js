@@ -2,7 +2,8 @@
 (() => {
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
-    labels: []
+    labels: [],
+    theme: "system"
   };
   async function getSettings() {
     return new Promise((resolve) => {
@@ -11,9 +12,11 @@
       });
     });
   }
-  async function saveSettings(settings) {
+  async function saveSettings(newSettings) {
+    const currentSettings = await getSettings();
+    const mergedSettings = { ...currentSettings, ...newSettings };
     return new Promise((resolve) => {
-      chrome.storage.sync.set(settings, () => {
+      chrome.storage.sync.set(mergedSettings, () => {
         resolve();
       });
     });
@@ -42,15 +45,27 @@
   }
 
   // src/options.ts
-  var listElement = document.getElementById("labels-list");
-  var inputElement = document.getElementById("new-label-input");
+  var labelList = document.getElementById("labels-list");
+  var newLabelInput = document.getElementById("new-label-input");
   var addBtn = document.getElementById("add-btn");
   var exportBtn = document.getElementById("export-btn");
   var importBtn = document.getElementById("import-btn");
   var importFile = document.getElementById("import-file");
+  var themeSelect = document.getElementById("theme-select");
+  document.addEventListener("DOMContentLoaded", async () => {
+    const settings = await getSettings();
+    renderList();
+    if (themeSelect) {
+      themeSelect.value = settings.theme;
+    }
+    themeSelect?.addEventListener("change", async () => {
+      const theme = themeSelect.value;
+      await saveSettings({ theme });
+    });
+  });
   async function renderList() {
     const settings = await getSettings();
-    listElement.innerHTML = "";
+    labelList.innerHTML = "";
     settings.labels.forEach((label, index) => {
       const li = document.createElement("li");
       li.draggable = true;
@@ -73,18 +88,18 @@
       li.addEventListener("drop", handleDrop);
       li.addEventListener("dragenter", handleDragEnter);
       li.addEventListener("dragleave", handleDragLeave);
-      listElement.appendChild(li);
+      labelList.appendChild(li);
     });
   }
   addBtn.addEventListener("click", async () => {
-    const name = inputElement.value;
+    const name = newLabelInput.value;
     if (name) {
       await addLabel(name);
-      inputElement.value = "";
+      newLabelInput.value = "";
       renderList();
     }
   });
-  inputElement.addEventListener("keypress", (e) => {
+  newLabelInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       addBtn.click();
     }

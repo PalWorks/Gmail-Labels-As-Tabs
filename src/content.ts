@@ -31,9 +31,15 @@ async function init() {
 
     // Listen for storage changes to update tabs in real-time
     chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync' && changes.labels) {
-            currentSettings!.labels = changes.labels.newValue;
-            renderTabs();
+        if (area === 'sync') {
+            if (changes.labels) {
+                currentSettings!.labels = changes.labels.newValue;
+                renderTabs();
+            }
+            if (changes.theme) {
+                currentSettings!.theme = changes.theme.newValue;
+                applyTheme(currentSettings!.theme);
+            }
         }
     });
 
@@ -104,40 +110,106 @@ function createTabsBar(): HTMLElement {
 /**
  * Render the tabs based on current settings.
  */
-/**
- * Render the tabs based on current settings.
- */
-/**
- * Render the tabs based on current settings.
- */
-/**
- * Render the tabs based on current settings.
- */
+
+// --- Drag Handlers ---
+let dragSrcEl: HTMLElement | null = null;
+
+function handleDragStart(this: HTMLElement, e: DragEvent) {
+    dragSrcEl = this;
+    this.classList.add('dragging');
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.index || '');
+        // Set a transparent drag image if possible, or let browser handle it
+    }
+}
+
+function handleDragOver(e: DragEvent) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+    }
+    return false;
+}
+
+function handleDragEnter(this: HTMLElement, e: DragEvent) {
+    this.classList.add('drag-over');
+}
+
+function handleDragLeave(this: HTMLElement, e: DragEvent) {
+    // Prevent flickering when entering child elements
+    if (this.contains(e.relatedTarget as Node)) return;
+    this.classList.remove('drag-over');
+}
+
+async function handleDrop(this: HTMLElement, e: DragEvent) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    // Remove the drop marker
+    this.classList.remove('drag-over');
+
+    if (dragSrcEl !== this) {
+        const oldIndex = parseInt(dragSrcEl!.dataset.index || '0');
+        const newIndex = parseInt(this.dataset.index || '0');
+
+        // Optimistic update
+        if (currentSettings) {
+            const labels = [...currentSettings.labels];
+            const [movedLabel] = labels.splice(oldIndex, 1);
+            labels.splice(newIndex, 0, movedLabel);
+
+            // Update local state immediately
+            currentSettings.labels = labels;
+            renderTabs();
+
+            // Persist
+            await updateLabelOrder(labels);
+        }
+    }
+    return false;
+}
+
+function handleDragEnd(this: HTMLElement, e: DragEvent) {
+    dragSrcEl = null;
+    document.querySelectorAll('.gmail-tab').forEach(item => {
+        item.classList.remove('drag-over', 'dragging');
+    });
+}
+
 function renderTabs() {
     const bar = document.getElementById(TABS_BAR_ID);
     if (!bar || !currentSettings) return;
+    bar.innerHTML = '';
 
-    bar.innerHTML = ''; // Clear existing
-
-    currentSettings.labels.forEach(label => {
-        const tab = document.createElement('div'); // Changed to div to handle nested clicks better
+    currentSettings.labels.forEach((label, index) => {
+        const tab = document.createElement('div');
         tab.className = 'gmail-tab';
+        tab.setAttribute('draggable', 'true');
+        tab.dataset.index = index.toString();
         tab.dataset.label = label.name;
 
-        // Tab Content (Name)
+        // Drag Handle
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'tab-drag-handle';
+        dragHandle.title = 'Drag to reorder';
+        dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
+        tab.appendChild(dragHandle);
+
         const nameSpan = document.createElement('span');
         nameSpan.className = 'tab-name';
         nameSpan.textContent = label.displayName || label.name;
         tab.appendChild(nameSpan);
 
-        // Hover Actions Container
         const actions = document.createElement('div');
         actions.className = 'tab-actions';
 
-        // Edit Button (3 dots)
         const editBtn = document.createElement('div');
         editBtn.className = 'tab-action-btn edit-btn';
-        editBtn.innerHTML = '⋮'; // Vertical ellipsis
+        editBtn.innerHTML = '⋮';
         editBtn.title = 'Edit Tab';
         editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -145,7 +217,6 @@ function renderTabs() {
         });
         actions.appendChild(editBtn);
 
-        // Delete Button (X)
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'tab-action-btn delete-btn';
         deleteBtn.innerHTML = '✕';
@@ -159,18 +230,27 @@ function renderTabs() {
             }
         });
         actions.appendChild(deleteBtn);
-
         tab.appendChild(actions);
 
-        // Main Tab Click (Navigation)
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', (e) => {
+            // Don't navigate if clicking actions or drag handle
+            if ((e.target as HTMLElement).closest('.tab-actions') || (e.target as HTMLElement).closest('.tab-drag-handle')) {
+                return;
+            }
             window.location.href = getLabelUrl(label.name);
         });
+
+        // Drag Events
+        tab.addEventListener('dragstart', handleDragStart);
+        tab.addEventListener('dragenter', handleDragEnter);
+        tab.addEventListener('dragover', handleDragOver);
+        tab.addEventListener('dragleave', handleDragLeave);
+        tab.addEventListener('drop', handleDrop);
+        tab.addEventListener('dragend', handleDragEnd);
 
         bar.appendChild(tab);
     });
 
-    // Add "Add Tab" button
     const addBtn = document.createElement('div');
     addBtn.className = 'add-tab-btn';
     addBtn.innerHTML = '+';
@@ -390,4 +470,23 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
     init();
+}
+
+// --- Theme Management ---
+function applyTheme(theme: 'system' | 'light' | 'dark') {
+    document.body.classList.remove('force-dark', 'force-light');
+
+    if (theme === 'dark') {
+        document.body.classList.add('force-dark');
+    } else if (theme === 'light') {
+        document.body.classList.add('force-light');
+    }
+    // 'system' does nothing, letting media queries handle it
+}
+
+// Initial Theme Application
+if (currentSettings) {
+    applyTheme(currentSettings.theme);
+} else {
+    getSettings().then(settings => applyTheme(settings.theme));
 }

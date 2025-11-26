@@ -9,6 +9,7 @@ const commonConfig = {
     entryPoints: [
         'src/content.ts',
         'src/options.ts',
+        'src/popup.ts',
         'src/background.ts'
     ],
     bundle: true,

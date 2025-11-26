@@ -1,18 +1,160 @@
 /* Toolbar Styles */
+:root {
+    /* Light Mode Defaults */
+    --gmail-tabs-bg: #fff;
+    --gmail-tabs-border: rgba(0, 0, 0, 0.1);
+    --gmail-tab-text: #5f6368;
+    --gmail-tab-hover-bg: #f1f3f4;
+    --gmail-tab-hover-text: #202124;
+    --gmail-tab-active-bg: #e8f0fe;
+    --gmail-tab-active-text: #1967d2;
+    --gmail-add-btn-text: #5f6368;
+    --gmail-add-btn-hover-bg: #f1f3f4;
+    --gmail-add-btn-hover-text: #202124;
+
+    /* Modal Colors */
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+    --modal-bg: #fff;
+    --modal-header-border: #f1f3f4;
+    --modal-text: #202124;
+    --modal-close-btn: #5f6368;
+    --input-border: #dadce0;
+    --input-bg: #fff;
+    --input-text: #202124;
+    --disabled-input-bg: #f1f3f4;
+    --disabled-input-text: #5f6368;
+    --list-border: #f1f3f4;
+    --action-btn-text: #5f6368;
+    --action-btn-hover-bg: #f1f3f4;
+    --action-btn-hover-text: #202124;
+    --remove-btn-hover: #d93025;
+
+    /* Primary Button */
+    --primary-btn-bg: #1a73e8;
+    --primary-btn-text: #fff;
+    --primary-btn-hover-bg: #1557b0;
+}
+
+/* Dark Mode Overrides (Media Query) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark Mode Overrides */
+        --gmail-tabs-bg: #202124;
+        --gmail-tabs-border: rgba(255, 255, 255, 0.1);
+        --gmail-tab-text: #9aa0a6;
+        --gmail-tab-hover-bg: #303134;
+        --gmail-tab-hover-text: #e8eaed;
+        --gmail-tab-active-bg: #41331c;
+        /* Gmail Dark Active (Yellowish tint) or Blue #174ea6 */
+        --gmail-tab-active-text: #8ab4f8;
+        --gmail-add-btn-text: #9aa0a6;
+        --gmail-add-btn-hover-bg: #303134;
+        --gmail-add-btn-hover-text: #e8eaed;
+
+        /* Modal Colors */
+        --modal-overlay: rgba(0, 0, 0, 0.6);
+        --modal-bg: #202124;
+        --modal-header-border: #3c4043;
+        --modal-text: #e8eaed;
+        --modal-close-btn: #9aa0a6;
+        --input-border: #5f6368;
+        --input-bg: #202124;
+        --input-text: #e8eaed;
+        --disabled-input-bg: #303134;
+        --disabled-input-text: #9aa0a6;
+        --list-border: #3c4043;
+        --action-btn-text: #9aa0a6;
+        --action-btn-hover-bg: #303134;
+        --action-btn-hover-text: #e8eaed;
+        --remove-btn-hover: #f28b82;
+
+        /* Primary Button */
+        --primary-btn-bg: #8ab4f8;
+        --primary-btn-text: #202124;
+        --primary-btn-hover-bg: #aecbfa;
+    }
+}
+
+/* Force Dark Mode */
+body.force-dark {
+    --gmail-tabs-bg: #202124;
+    --gmail-tabs-border: rgba(255, 255, 255, 0.1);
+    --gmail-tab-text: #9aa0a6;
+    --gmail-tab-hover-bg: #303134;
+    --gmail-tab-hover-text: #e8eaed;
+    --gmail-tab-active-bg: #41331c;
+    --gmail-tab-active-text: #8ab4f8;
+    --gmail-add-btn-text: #9aa0a6;
+    --gmail-add-btn-hover-bg: #303134;
+    --gmail-add-btn-hover-text: #e8eaed;
+
+    --modal-overlay: rgba(0, 0, 0, 0.6);
+    --modal-bg: #202124;
+    --modal-header-border: #3c4043;
+    --modal-text: #e8eaed;
+    --modal-close-btn: #9aa0a6;
+    --input-border: #5f6368;
+    --input-bg: #202124;
+    --input-text: #e8eaed;
+    --disabled-input-bg: #303134;
+    --disabled-input-text: #9aa0a6;
+    --list-border: #3c4043;
+    --action-btn-text: #9aa0a6;
+    --action-btn-hover-bg: #303134;
+    --action-btn-hover-text: #e8eaed;
+    --remove-btn-hover: #f28b82;
+
+    --primary-btn-bg: #8ab4f8;
+    --primary-btn-text: #202124;
+    --primary-btn-hover-bg: #aecbfa;
+}
+
+/* Force Light Mode (Overrides system dark mode) */
+body.force-light {
+    --gmail-tabs-bg: #fff;
+    --gmail-tabs-border: rgba(0, 0, 0, 0.1);
+    --gmail-tab-text: #5f6368;
+    --gmail-tab-hover-bg: #f1f3f4;
+    --gmail-tab-hover-text: #202124;
+    --gmail-tab-active-bg: #e8f0fe;
+    --gmail-tab-active-text: #1967d2;
+    --gmail-add-btn-text: #5f6368;
+    --gmail-add-btn-hover-bg: #f1f3f4;
+    --gmail-add-btn-hover-text: #202124;
+
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+    --modal-bg: #fff;
+    --modal-header-border: #f1f3f4;
+    --modal-text: #202124;
+    --modal-close-btn: #5f6368;
+    --input-border: #dadce0;
+    --input-bg: #fff;
+    --input-text: #202124;
+    --disabled-input-bg: #f1f3f4;
+    --disabled-input-text: #5f6368;
+    --list-border: #f1f3f4;
+    --action-btn-text: #5f6368;
+    --action-btn-hover-bg: #f1f3f4;
+    --action-btn-hover-text: #202124;
+    --remove-btn-hover: #d93025;
+
+    --primary-btn-bg: #1a73e8;
+    --primary-btn-text: #fff;
+    --primary-btn-hover-bg: #1557b0;
+}
+
 .gmail-tabs-bar {
     display: flex;
     align-items: center;
     padding: 0 16px;
     height: 48px;
-    background-color: #fff;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: var(--gmail-tabs-bg);
+    border-bottom: 1px solid var(--gmail-tabs-border);
     font-family: 'Google Sans', Roboto, Arial, sans-serif;
     overflow-x: auto;
     white-space: nowrap;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    /* Ensure it sits above other content if needed, but usually natural flow is best */
-    /* z-index: 100; Removed to prevent overlapping Gmail menus */
 }
 
 .gmail-tabs-bar::-webkit-scrollbar {
@@ -29,21 +171,23 @@
     border-radius: 16px;
     font-size: 14px;
     font-weight: 500;
-    color: #5f6368;
+    color: var(--gmail-tab-text);
     cursor: pointer;
     text-decoration: none;
     transition: background-color 0.2s;
     border: 1px solid transparent;
+    position: relative;
+    padding-right: 8px;
 }
 
 .gmail-tab:hover {
-    background-color: #f1f3f4;
-    color: #202124;
+    background-color: var(--gmail-tab-hover-bg);
+    color: var(--gmail-tab-hover-text);
 }
 
 .gmail-tab.active {
-    background-color: #e8f0fe;
-    color: #1967d2;
+    background-color: var(--gmail-tab-active-bg);
+    color: var(--gmail-tab-active-text);
     font-weight: 500;
 }
 
@@ -54,7 +198,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    color: #5f6368;
+    color: var(--gmail-add-btn-text);
     cursor: pointer;
     margin-left: 8px;
     transition: background-color 0.2s;
@@ -63,8 +207,8 @@
 }
 
 .add-tab-btn:hover {
-    background-color: #f1f3f4;
-    color: #202124;
+    background-color: var(--gmail-add-btn-hover-bg);
+    color: var(--gmail-add-btn-hover-text);
 }
 
 /* Modal Styles */
@@ -74,7 +218,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--modal-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,16 +226,17 @@
 }
 
 .modal-content {
-    background: #fff;
+    background: var(--modal-bg);
     width: 400px;
     border-radius: 8px;
     box-shadow: 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12), 0 11px 15px -7px rgba(0, 0, 0, 0.2);
     overflow: hidden;
+    color: var(--modal-text);
 }
 
 .modal-header {
     padding: 16px 24px;
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid var(--modal-header-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -101,6 +246,7 @@
     margin: 0;
     font-size: 18px;
     font-weight: 400;
+    color: var(--modal-text);
 }
 
 .close-btn {
@@ -108,7 +254,7 @@
     border: none;
     font-size: 20px;
     cursor: pointer;
-    color: #5f6368;
+    color: var(--modal-close-btn);
 }
 
 .modal-body {
@@ -124,14 +270,16 @@
 .input-group input {
     flex: 1;
     padding: 8px 12px;
-    border: 1px solid #dadce0;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 14px;
+    background-color: var(--input-bg);
+    color: var(--input-text);
 }
 
 .input-group button {
-    background-color: #1a73e8;
-    color: white;
+    background-color: var(--primary-btn-bg);
+    color: var(--primary-btn-text);
     border: none;
     padding: 8px 16px;
     border-radius: 4px;
@@ -152,35 +300,27 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid #f1f3f4;
+    border-bottom: 1px solid var(--list-border);
 }
 
 #modal-labels-list .actions button {
     background: none;
     border: none;
     cursor: pointer;
-    color: #5f6368;
+    color: var(--action-btn-text);
 }
 
 #modal-labels-list .actions button:hover {
-    color: #202124;
-    background-color: #f1f3f4;
+    color: var(--action-btn-hover-text);
+    background-color: var(--action-btn-hover-bg);
     border-radius: 4px;
 }
 
 #modal-labels-list .actions .remove-btn:hover {
-    color: #d93025;
+    color: var(--remove-btn-hover);
 }
 
 /* Tab Hover Actions */
-.gmail-tab {
-    display: inline-flex;
-    /* Ensure it stays inline-flex as per original */
-    align-items: center;
-    padding-right: 8px;
-    position: relative;
-}
-
 .tab-name {
     margin-right: 4px;
 }
@@ -204,13 +344,13 @@
     border-radius: 50%;
     cursor: pointer;
     font-size: 12px;
-    color: #5f6368;
+    color: var(--gmail-tab-text);
     margin-left: 2px;
 }
 
 .tab-action-btn:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: #202124;
+    background-color: var(--gmail-tab-hover-bg);
+    color: var(--gmail-tab-hover-text);
 }
 
 .edit-btn {
@@ -218,9 +358,6 @@
 }
 
 /* Edit Modal */
-/* We reuse .gmail-tabs-modal for the overlay and .modal-content for the box */
-/* .edit-tab-modal is an additional class on .modal-content */
-
 .edit-tab-modal {
     width: 350px;
 }
@@ -233,22 +370,24 @@
     display: block;
     margin-bottom: 6px;
     font-weight: 500;
-    color: #202124;
+    color: var(--modal-text);
     font-size: 14px;
 }
 
 .form-group input[type="text"] {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #dadce0;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 14px;
     box-sizing: border-box;
+    background-color: var(--input-bg);
+    color: var(--input-text);
 }
 
 .disabled-input {
-    background-color: #f1f3f4;
-    color: #5f6368;
+    background-color: var(--disabled-input-bg) !important;
+    color: var(--disabled-input-text) !important;
 }
 
 .modal-actions {
@@ -258,8 +397,8 @@
 }
 
 .primary-btn {
-    background-color: #1a73e8;
-    color: white;
+    background-color: var(--primary-btn-bg);
+    color: var(--primary-btn-text);
     border: none;
     padding: 8px 24px;
     border-radius: 4px;
@@ -268,5 +407,80 @@
 }
 
 .primary-btn:hover {
-    background-color: #1557b0;
+    background-color: var(--primary-btn-hover-bg);
+}
+
+/* Drag and Drop Styles for Tabs */
+.tab-drag-handle {
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    cursor: grab;
+    color: #5f6368;
+    margin-right: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.gmail-tab:hover .tab-drag-handle {
+    display: flex;
+    /* Show on hover */
+}
+
+.tab-drag-handle svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.tab-drag-handle:hover {
+    color: #202124;
+    background-color: rgba(32, 33, 36, 0.059);
+}
+
+.gmail-tab.dragging {
+    opacity: 0.4;
+    background-color: #e8eaed;
+}
+
+/* Premium Drop Marker */
+.gmail-tab {
+    position: relative;
+    /* For absolute positioning of marker */
+}
+
+.gmail-tab.drag-over::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    /* Position in the gap between tabs */
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    background-color: #1a73e8;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3);
+}
+
+/* Dark Mode Overrides for Drag Handle */
+.force-dark .tab-drag-handle {
+    color: #9aa0a6;
+}
+
+.force-dark .tab-drag-handle:hover {
+    color: #e8eaed;
+    background-color: rgba(232, 234, 237, 0.08);
+}
+
+.force-dark .gmail-tab.dragging {
+    background-color: #303134;
+}
+
+.force-dark .gmail-tab.drag-over::before {
+    background-color: #8ab4f8;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
 }

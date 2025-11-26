@@ -7,17 +7,36 @@
 
 import { getSettings, saveSettings, addLabel, removeLabel, updateLabelOrder, TabLabel } from './utils/storage';
 
-const listElement = document.getElementById('labels-list') as HTMLInputElement;
-const inputElement = document.getElementById('new-label-input') as HTMLInputElement;
+const labelList = document.getElementById('labels-list') as HTMLDivElement; // Changed from listElement
+const newLabelInput = document.getElementById('new-label-input') as HTMLInputElement; // Changed from inputElement
 const addBtn = document.getElementById('add-btn') as HTMLButtonElement;
 const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
-const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
+const importBtn = document.getElementById('import-btn') as HTMLButtonButtonElement;
 const importFile = document.getElementById('import-file') as HTMLInputElement;
+const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+
+// Initial setup and event listeners
+document.addEventListener('DOMContentLoaded', async () => {
+    const settings = await getSettings();
+    renderList(); // Initial render of labels
+
+    // Set initial theme selection
+    if (themeSelect) {
+        themeSelect.value = settings.theme;
+    }
+
+    // Handle Theme Change
+    themeSelect?.addEventListener('change', async () => {
+        const theme = themeSelect.value as 'system' | 'light' | 'dark';
+        await saveSettings({ theme });
+    });
+});
+
 
 // Render the list of labels
 async function renderList() {
     const settings = await getSettings();
-    listElement.innerHTML = '';
+    labelList.innerHTML = '';
 
     settings.labels.forEach((label, index) => {
         const li = document.createElement('li');
@@ -47,22 +66,22 @@ async function renderList() {
         li.addEventListener('dragenter', handleDragEnter);
         li.addEventListener('dragleave', handleDragLeave);
 
-        listElement.appendChild(li);
+        labelList.appendChild(li);
     });
 }
 
 // Add new label
 addBtn.addEventListener('click', async () => {
-    const name = inputElement.value;
+    const name = newLabelInput.value;
     if (name) {
         await addLabel(name);
-        inputElement.value = '';
+        newLabelInput.value = '';
         renderList();
     }
 });
 
 // Allow Enter key to submit
-inputElement.addEventListener('keypress', (e) => {
+newLabelInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         addBtn.click();
     }

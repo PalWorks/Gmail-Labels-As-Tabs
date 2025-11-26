@@ -2,7 +2,8 @@
 (() => {
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
-    labels: []
+    labels: [],
+    theme: "system"
   };
   async function getSettings() {
     return new Promise((resolve) => {
@@ -11,9 +12,11 @@
       });
     });
   }
-  async function saveSettings(settings) {
+  async function saveSettings(newSettings) {
+    const currentSettings2 = await getSettings();
+    const mergedSettings = { ...currentSettings2, ...newSettings };
     return new Promise((resolve) => {
-      chrome.storage.sync.set(settings, () => {
+      chrome.storage.sync.set(mergedSettings, () => {
         resolve();
       });
     });
@@ -63,9 +66,15 @@
   async function init() {
     currentSettings = await getSettings();
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "sync" && changes.labels) {
-        currentSettings.labels = changes.labels.newValue;
-        renderTabs();
+      if (area === "sync") {
+        if (changes.labels) {
+          currentSettings.labels = changes.labels.newValue;
+          renderTabs();
+        }
+        if (changes.theme) {
+          currentSettings.theme = changes.theme.newValue;
+          applyTheme(currentSettings.theme);
+        }
       }
     });
     attemptInjection();
@@ -109,14 +118,71 @@
     bar.className = "gmail-tabs-bar";
     return bar;
   }
+  var dragSrcEl = null;
+  function handleDragStart(e) {
+    dragSrcEl = this;
+    this.classList.add("dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", this.dataset.index || "");
+    }
+  }
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    return false;
+  }
+  function handleDragEnter(e) {
+    this.classList.add("drag-over");
+  }
+  function handleDragLeave(e) {
+    if (this.contains(e.relatedTarget)) return;
+    this.classList.remove("drag-over");
+  }
+  async function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+    this.classList.remove("drag-over");
+    if (dragSrcEl !== this) {
+      const oldIndex = parseInt(dragSrcEl.dataset.index || "0");
+      const newIndex = parseInt(this.dataset.index || "0");
+      if (currentSettings) {
+        const labels = [...currentSettings.labels];
+        const [movedLabel] = labels.splice(oldIndex, 1);
+        labels.splice(newIndex, 0, movedLabel);
+        currentSettings.labels = labels;
+        renderTabs();
+        await updateLabelOrder(labels);
+      }
+    }
+    return false;
+  }
+  function handleDragEnd(e) {
+    dragSrcEl = null;
+    document.querySelectorAll(".gmail-tab").forEach((item) => {
+      item.classList.remove("drag-over", "dragging");
+    });
+  }
   function renderTabs() {
     const bar = document.getElementById(TABS_BAR_ID);
     if (!bar || !currentSettings) return;
     bar.innerHTML = "";
-    currentSettings.labels.forEach((label) => {
+    currentSettings.labels.forEach((label, index) => {
       const tab = document.createElement("div");
       tab.className = "gmail-tab";
+      tab.setAttribute("draggable", "true");
+      tab.dataset.index = index.toString();
       tab.dataset.label = label.name;
+      const dragHandle = document.createElement("div");
+      dragHandle.className = "tab-drag-handle";
+      dragHandle.title = "Drag to reorder";
+      dragHandle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
+      tab.appendChild(dragHandle);
       const nameSpan = document.createElement("span");
       nameSpan.className = "tab-name";
       nameSpan.textContent = label.displayName || label.name;
@@ -146,9 +212,18 @@
       });
       actions.appendChild(deleteBtn);
       tab.appendChild(actions);
-      tab.addEventListener("click", () => {
+      tab.addEventListener("click", (e) => {
+        if (e.target.closest(".tab-actions") || e.target.closest(".tab-drag-handle")) {
+          return;
+        }
         window.location.href = getLabelUrl(label.name);
       });
+      tab.addEventListener("dragstart", handleDragStart);
+      tab.addEventListener("dragenter", handleDragEnter);
+      tab.addEventListener("dragover", handleDragOver);
+      tab.addEventListener("dragleave", handleDragLeave);
+      tab.addEventListener("drop", handleDrop);
+      tab.addEventListener("dragend", handleDragEnd);
       bar.appendChild(tab);
     });
     const addBtn = document.createElement("div");
@@ -325,6 +400,19 @@
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
+  }
+  function applyTheme(theme) {
+    document.body.classList.remove("force-dark", "force-light");
+    if (theme === "dark") {
+      document.body.classList.add("force-dark");
+    } else if (theme === "light") {
+      document.body.classList.add("force-light");
+    }
+  }
+  if (currentSettings) {
+    applyTheme(currentSettings.theme);
+  } else {
+    getSettings().then((settings) => applyTheme(settings.theme));
   }
 })();
 //# sourceMappingURL=content.js.map
