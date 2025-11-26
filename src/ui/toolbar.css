@@ -146,15 +146,18 @@ body.force-light {
 .gmail-tabs-bar {
     display: flex;
     align-items: center;
-    padding: 0 16px;
-    height: 48px;
+    flex-wrap: wrap;
+    /* Enable wrapping */
+    padding: 8px 16px;
+    /* Adjust padding for multi-line */
+    min-height: 48px;
+    /* Allow height to grow */
+    height: auto;
     background-color: var(--gmail-tabs-bg);
     border-bottom: 1px solid var(--gmail-tabs-border);
     font-family: 'Google Sans', Roboto, Arial, sans-serif;
-    overflow-x: auto;
-    white-space: nowrap;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    gap: 8px;
+    /* Consistent spacing */
 }
 
 .gmail-tabs-bar::-webkit-scrollbar {
@@ -167,7 +170,7 @@ body.force-light {
     justify-content: center;
     height: 32px;
     padding: 0 16px;
-    margin-right: 8px;
+    /* margin-right: 8px; Removed in favor of gap */
     border-radius: 16px;
     font-size: 14px;
     font-weight: 500;
@@ -200,7 +203,7 @@ body.force-light {
     border-radius: 50%;
     color: var(--gmail-add-btn-text);
     cursor: pointer;
-    margin-left: 8px;
+    /* margin-left: 8px; Removed in favor of gap */
     transition: background-color 0.2s;
     font-size: 20px;
     user-select: none;
