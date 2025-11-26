@@ -543,3 +543,147 @@ body.force-light {
 .force-dark .save-view-btn:hover {
     background-color: rgba(138, 180, 248, 0.1);
 }
+
+/* Modal Drag and Drop Styles */
+.modal-drag-handle {
+    cursor: grab;
+    color: var(--gmail-tab-text);
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.modal-drag-handle:hover {
+    background-color: var(--gmail-tab-hover-bg);
+    color: var(--gmail-tab-hover-text);
+}
+
+.modal-drag-handle svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+#modal-labels-list li {
+    transition: background-color 0.2s, transform 0.2s;
+    border-radius: 4px;
+    position: relative;
+    /* For absolute positioning of the line */
+}
+
+#modal-labels-list li.dragging {
+    opacity: 0.5;
+    background-color: var(--gmail-tab-hover-bg);
+}
+
+/* Remove old drag-over style */
+/* #modal-labels-list li.drag-over { ... } */
+
+/* Horizontal Drop Line Indicator */
+#modal-labels-list li.drop-above::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    /* Adjust to sit exactly between items */
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #1a73e8;
+    border-radius: 2px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#modal-labels-list li.drop-below::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    /* Adjust to sit exactly between items */
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #1a73e8;
+    border-radius: 2px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Dark Mode Line Color */
+.force-dark #modal-labels-list li.drop-above::before,
+.force-dark #modal-labels-list li.drop-below::after {
+    background-color: #8ab4f8;
+}
+
+/* Ensure it sits nicely in flex containers */
+/* .gmail-header-btn removed */
+
+.tab-info {
+    flex-grow: 1;
+    text-align: left;
+    margin-left: 8px;
+    white-space: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Theme Selector Styles */
+.theme-selector-group {
+    margin-bottom: 16px;
+}
+
+.theme-options {
+    display: flex;
+    background-color: var(--disabled-input-bg);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.theme-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--gmail-tab-text);
+    transition: all 0.2s;
+}
+
+.theme-btn:hover {
+    color: var(--gmail-tab-hover-text);
+}
+
+.theme-btn.active {
+    background-color: var(--modal-bg);
+    color: var(--primary-btn-bg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+}
+
+.force-dark .theme-btn.active {
+    color: var(--primary-btn-text);
+    background-color: #5f6368;
+    /* Lighter grey for active in dark mode */
+}
+
+/* Error States */
+.input-error {
+    border-color: #d93025 !important;
+}
+
+.input-error:focus {
+    box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.2);
+}
+
+.input-error-msg {
+    color: #d93025;
+    font-size: 12px;
+    margin-top: -16px;
+    /* Pull it up closer to input */
+    margin-bottom: 16px;
+    margin-left: 2px;
+}

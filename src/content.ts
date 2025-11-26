@@ -247,11 +247,6 @@ function renderTabs() {
         });
 
         // Drag Events
-        tabEl.addEventListener('dragstart', handleDragStart);
-        tabEl.addEventListener('dragenter', handleDragEnter);
-        tabEl.addEventListener('dragover', handleDragOver);
-        tabEl.addEventListener('dragleave', handleDragLeave);
-        tabEl.addEventListener('drop', handleDrop);
         tabEl.addEventListener('dragend', handleDragEnd);
 
         bar.appendChild(tabEl);
@@ -260,7 +255,7 @@ function renderTabs() {
     // "Save View" Button (formerly Pin, now Plus)
     const saveViewBtn = document.createElement('div');
     saveViewBtn.className = 'gmail-tab-btn save-view-btn';
-    // Google Material Symbol: add_circle (filled or outlined) - using outlined for clean look, or filled for prominence
+    // Google Material Symbol: add_circle (outlined)
     saveViewBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>';
     saveViewBtn.title = 'Save Current View as Tab';
     saveViewBtn.addEventListener('click', (e) => {
@@ -482,10 +477,27 @@ function createSettingsModal() {
                 <button class="close-btn">✕</button>
             </div>
             <div class="modal-body">
-                <div class="input-group">
-                    <input type="text" id="modal-new-label" placeholder="Label name (e.g. 'Work')">
-                    <button id="modal-add-btn">Add</button>
+                <div class="form-group theme-selector-group">
+                    <label>Theme</label>
+                    <div class="theme-options">
+                        <button class="theme-btn" data-theme="system">System</button>
+                        <button class="theme-btn" data-theme="light">Light</button>
+                        <button class="theme-btn" data-theme="dark">Dark</button>
+                    </div>
                 </div>
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
+                
+                <div class="add-tab-section">
+                    <div class="input-group">
+                        <input type="text" id="modal-new-label" placeholder="Label Name or View URL">
+                    </div>
+                    <div id="modal-error-msg" class="input-error-msg" style="display: none;"></div>
+                    <div class="input-group" id="modal-title-group" style="display:none;">
+                        <input type="text" id="modal-new-title" placeholder="Tab Title">
+                    </div>
+                    <button id="modal-add-btn" class="primary-btn" style="width: 100%; margin-bottom: 16px;">Add Tab</button>
+                </div>
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 <ul id="modal-labels-list"></ul>
             </div>
         </div>
@@ -501,15 +513,141 @@ function createSettingsModal() {
 
     const addBtn = modal.querySelector('#modal-add-btn') as HTMLButtonElement;
     const input = modal.querySelector('#modal-new-label') as HTMLInputElement;
+    const titleInput = modal.querySelector('#modal-new-title') as HTMLInputElement;
+    const titleGroup = modal.querySelector('#modal-title-group') as HTMLElement;
     const list = modal.querySelector('#modal-labels-list') as HTMLUListElement;
+
+    // Smart Input Detection
+    input.addEventListener('input', () => {
+        const value = input.value.trim();
+        const isUrl = value.includes('http') || value.includes('mail.google.com') || value.startsWith('#');
+
+        if (isUrl) {
+            titleGroup.style.display = 'flex';
+            // Auto-extract title if possible (simple heuristic)
+            if (!titleInput.value) {
+                if (value.includes('#search/')) {
+                    titleInput.value = decodeURIComponent(value.split('#search/')[1]).replace(/\+/g, ' ');
+                } else if (value.includes('#label/')) {
+                    titleInput.value = decodeURIComponent(value.split('#label/')[1]).replace(/\+/g, ' ');
+                }
+            }
+        } else {
+            // For simple labels, we can hide the title input or keep it optional.
+            // Let's hide it to keep it simple, unless user manually opened it? 
+            // For now, auto-hide if it goes back to simple text and title is empty.
+            if (!titleInput.value) {
+                titleGroup.style.display = 'none';
+            }
+        }
+    });
+
+    // Modal Drag and Drop Logic
+    let modalDragSrcEl: HTMLElement | null = null;
+
+    const handleModalDragStart = function (this: HTMLElement, e: DragEvent) {
+        modalDragSrcEl = this;
+        this.classList.add('dragging');
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.index || '');
+        }
+    };
+
+    const handleModalDragOver = function (this: HTMLElement, e: DragEvent) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        // Calculate position within the element
+        const rect = this.getBoundingClientRect();
+        const relY = e.clientY - rect.top;
+        const height = rect.height;
+
+        // Remove existing classes first
+        this.classList.remove('drop-above', 'drop-below');
+
+        if (relY < height / 2) {
+            this.classList.add('drop-above');
+        } else {
+            this.classList.add('drop-below');
+        }
+
+        return false;
+    };
+
+    const handleModalDragEnter = function (this: HTMLElement) {
+        this.classList.add('drag-over');
+    };
+
+    const handleModalDragLeave = function (this: HTMLElement) {
+        this.classList.remove('drag-over', 'drop-above', 'drop-below');
+    };
+
+    const handleModalDrop = async function (this: HTMLElement, e: DragEvent) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+
+        const dropPosition = this.classList.contains('drop-above') ? 'above' : 'below';
+        this.classList.remove('drag-over', 'drop-above', 'drop-below');
+
+        if (modalDragSrcEl !== this) {
+            const oldIndex = parseInt(modalDragSrcEl!.dataset.index || '0');
+            let newIndex = parseInt(this.dataset.index || '0');
+
+            // Adjust newIndex based on drop position
+            if (dropPosition === 'below') {
+                newIndex++;
+            }
+
+            // If moving down, the index shifts because we remove the item first
+            // But if we are inserting 'below' a target that is essentially at index+1
+            // Let's simplify: remove first, then insert.
+
+            const settings = await getSettings();
+            const newTabs = [...settings.tabs];
+            const [movedTab] = newTabs.splice(oldIndex, 1);
+
+            // If we removed an item from before the target, the target's index shifted down by 1
+            if (oldIndex < newIndex) {
+                newIndex--;
+            }
+
+            newTabs.splice(newIndex, 0, movedTab);
+
+            await updateTabOrder(newTabs);
+            refreshList();
+            // Also update the main bar
+            currentSettings = await getSettings();
+            renderTabs();
+        }
+        return false;
+    };
+
+    const handleModalDragEnd = function (this: HTMLElement) {
+        modalDragSrcEl = null;
+        list.querySelectorAll('li').forEach(item => {
+            item.classList.remove('drag-over', 'dragging', 'drop-above', 'drop-below');
+        });
+    };
 
     const refreshList = async () => {
         const settings = await getSettings();
         list.innerHTML = '';
         settings.tabs.forEach((tab, index) => {
             const li = document.createElement('li');
+            li.setAttribute('draggable', 'true');
+            li.dataset.index = index.toString();
+
             li.innerHTML = `
-                <span>${tab.title} <small style="color: #888; font-size: 0.8em;">(${tab.type})</small></span>
+                <div class="modal-drag-handle" title="Drag to reorder">
+                    <svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </div>
+                <span class="tab-info">${tab.title} <small style="color: #888; font-size: 0.8em;">(${tab.type === 'hash' ? 'Custom' : 'Label'})</small></span>
                 <div class="actions">
                     ${index > 0 ? '<button class="up-btn">↑</button>' : ''}
                     ${index < settings.tabs.length - 1 ? '<button class="down-btn">↓</button>' : ''}
@@ -520,6 +658,8 @@ function createSettingsModal() {
             li.querySelector('.remove-btn')?.addEventListener('click', async () => {
                 await removeTab(tab.id);
                 refreshList();
+                currentSettings = await getSettings();
+                renderTabs();
             });
 
             li.querySelector('.up-btn')?.addEventListener('click', async () => {
@@ -527,6 +667,8 @@ function createSettingsModal() {
                 [newTabs[index - 1], newTabs[index]] = [newTabs[index], newTabs[index - 1]];
                 await updateTabOrder(newTabs);
                 refreshList();
+                currentSettings = await getSettings();
+                renderTabs();
             });
 
             li.querySelector('.down-btn')?.addEventListener('click', async () => {
@@ -534,29 +676,116 @@ function createSettingsModal() {
                 [newTabs[index + 1], newTabs[index]] = [newTabs[index], newTabs[index + 1]];
                 await updateTabOrder(newTabs);
                 refreshList();
+                currentSettings = await getSettings();
+                renderTabs();
             });
+
+            // Add Drag Listeners
+            li.addEventListener('dragstart', handleModalDragStart);
+            li.addEventListener('dragover', handleModalDragOver);
+            li.addEventListener('dragenter', handleModalDragEnter);
+            li.addEventListener('dragleave', handleModalDragLeave);
+            li.addEventListener('drop', handleModalDrop);
+            li.addEventListener('dragend', handleModalDragEnd);
 
             list.appendChild(li);
         });
     };
 
+    const errorMsg = modal.querySelector('#modal-error-msg') as HTMLElement;
+
+    // Clear error on input
+    input.addEventListener('input', () => {
+        input.classList.remove('input-error');
+        errorMsg.style.display = 'none';
+        // ... existing input logic ...
+    });
+
     addBtn.addEventListener('click', async () => {
         let value = input.value.trim();
+        let title = titleInput.value.trim();
+
         if (value) {
-            // Remove "label:" prefix if present (case-insensitive)
-            if (value.toLowerCase().startsWith('label:')) {
-                value = value.substring(6).trim();
+            // Check if it's a URL/Hash
+            let type: 'label' | 'hash' = 'label';
+            let finalValue = value;
+
+            if (value.includes('http') || value.includes('mail.google.com') || value.startsWith('#')) {
+                type = 'hash';
+                // Extract Hash
+                if (value.includes('#')) {
+                    finalValue = '#' + value.split('#')[1];
+                }
+            } else {
+                // It's a Label
+                if (value.toLowerCase().startsWith('label:')) {
+                    finalValue = value.substring(6).trim();
+                }
             }
 
-            if (value) {
-                await addTab(value, value, 'label');
-                input.value = '';
-                refreshList();
+            // Duplicate Check
+            const settings = await getSettings();
+            const existingTab = settings.tabs.find(t => t.value === finalValue);
+
+            if (existingTab) {
+                input.classList.add('input-error');
+                errorMsg.textContent = `View URL / Label already exists with tab display name as "${existingTab.title}"`;
+                errorMsg.style.display = 'block';
+                return;
             }
+
+            if (type === 'hash') {
+                if (!title) {
+                    alert('Please enter a Title for this tab.');
+                    titleInput.focus();
+                    return;
+                }
+                await addTab(title, finalValue, 'hash');
+            } else {
+                await addTab(title || finalValue, finalValue, 'label');
+            }
+
+            input.value = '';
+            titleInput.value = '';
+            titleGroup.style.display = 'none';
+            input.classList.remove('input-error');
+            errorMsg.style.display = 'none';
+
+            refreshList();
+            // Also update the main bar
+            currentSettings = await getSettings();
+            renderTabs();
         }
     });
 
     refreshList();
+
+    // Theme Selector Logic
+    const themeBtns = modal.querySelectorAll('.theme-btn');
+    const updateThemeUI = (activeTheme: string) => {
+        themeBtns.forEach(btn => {
+            if ((btn as HTMLElement).dataset.theme === activeTheme) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    };
+
+    // Initialize UI
+    getSettings().then(settings => {
+        updateThemeUI(settings.theme);
+    });
+
+    themeBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const theme = (btn as HTMLElement).dataset.theme as 'system' | 'light' | 'dark';
+            await saveSettings({ theme });
+            updateThemeUI(theme);
+            applyTheme(theme);
+            // currentSettings will be updated via storage listener
+        });
+    });
 }
 
 // Run init

@@ -132,49 +132,6 @@
     return bar;
   }
   var dragSrcEl = null;
-  function handleDragStart(e) {
-    dragSrcEl = this;
-    this.classList.add("dragging");
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", this.dataset.index || "");
-    }
-  }
-  function handleDragOver(e) {
-    if (e.preventDefault) {
-      e.preventDefault();
-    }
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = "move";
-    }
-    return false;
-  }
-  function handleDragEnter(e) {
-    this.classList.add("drag-over");
-  }
-  function handleDragLeave(e) {
-    if (this.contains(e.relatedTarget)) return;
-    this.classList.remove("drag-over");
-  }
-  async function handleDrop(e) {
-    if (e.stopPropagation) {
-      e.stopPropagation();
-    }
-    this.classList.remove("drag-over");
-    if (dragSrcEl !== this) {
-      const oldIndex = parseInt(dragSrcEl.dataset.index || "0");
-      const newIndex = parseInt(this.dataset.index || "0");
-      if (currentSettings) {
-        const tabs = [...currentSettings.tabs];
-        const [movedTab] = tabs.splice(oldIndex, 1);
-        tabs.splice(newIndex, 0, movedTab);
-        currentSettings.tabs = tabs;
-        renderTabs();
-        await updateTabOrder(tabs);
-      }
-    }
-    return false;
-  }
   function handleDragEnd(e) {
     dragSrcEl = null;
     document.querySelectorAll(".gmail-tab").forEach((item) => {
@@ -236,11 +193,6 @@
           window.location.href = getLabelUrl(tab.value);
         }
       });
-      tabEl.addEventListener("dragstart", handleDragStart);
-      tabEl.addEventListener("dragenter", handleDragEnter);
-      tabEl.addEventListener("dragover", handleDragOver);
-      tabEl.addEventListener("dragleave", handleDragLeave);
-      tabEl.addEventListener("drop", handleDrop);
       tabEl.addEventListener("dragend", handleDragEnd);
       bar.appendChild(tabEl);
     });
@@ -420,10 +372,27 @@
                 <button class="close-btn">\u2715</button>
             </div>
             <div class="modal-body">
-                <div class="input-group">
-                    <input type="text" id="modal-new-label" placeholder="Label name (e.g. 'Work')">
-                    <button id="modal-add-btn">Add</button>
+                <div class="form-group theme-selector-group">
+                    <label>Theme</label>
+                    <div class="theme-options">
+                        <button class="theme-btn" data-theme="system">System</button>
+                        <button class="theme-btn" data-theme="light">Light</button>
+                        <button class="theme-btn" data-theme="dark">Dark</button>
+                    </div>
                 </div>
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
+                
+                <div class="add-tab-section">
+                    <div class="input-group">
+                        <input type="text" id="modal-new-label" placeholder="Label Name or View URL">
+                    </div>
+                    <div id="modal-error-msg" class="input-error-msg" style="display: none;"></div>
+                    <div class="input-group" id="modal-title-group" style="display:none;">
+                        <input type="text" id="modal-new-title" placeholder="Tab Title">
+                    </div>
+                    <button id="modal-add-btn" class="primary-btn" style="width: 100%; margin-bottom: 16px;">Add Tab</button>
+                </div>
+                <div style="border-bottom: 1px solid var(--list-border); margin-bottom: 16px;"></div>
                 <ul id="modal-labels-list"></ul>
             </div>
         </div>
@@ -435,14 +404,104 @@
     });
     const addBtn = modal.querySelector("#modal-add-btn");
     const input = modal.querySelector("#modal-new-label");
+    const titleInput = modal.querySelector("#modal-new-title");
+    const titleGroup = modal.querySelector("#modal-title-group");
     const list = modal.querySelector("#modal-labels-list");
+    input.addEventListener("input", () => {
+      const value = input.value.trim();
+      const isUrl = value.includes("http") || value.includes("mail.google.com") || value.startsWith("#");
+      if (isUrl) {
+        titleGroup.style.display = "flex";
+        if (!titleInput.value) {
+          if (value.includes("#search/")) {
+            titleInput.value = decodeURIComponent(value.split("#search/")[1]).replace(/\+/g, " ");
+          } else if (value.includes("#label/")) {
+            titleInput.value = decodeURIComponent(value.split("#label/")[1]).replace(/\+/g, " ");
+          }
+        }
+      } else {
+        if (!titleInput.value) {
+          titleGroup.style.display = "none";
+        }
+      }
+    });
+    let modalDragSrcEl = null;
+    const handleModalDragStart = function(e) {
+      modalDragSrcEl = this;
+      this.classList.add("dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", this.dataset.index || "");
+      }
+    };
+    const handleModalDragOver = function(e) {
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+      const rect = this.getBoundingClientRect();
+      const relY = e.clientY - rect.top;
+      const height = rect.height;
+      this.classList.remove("drop-above", "drop-below");
+      if (relY < height / 2) {
+        this.classList.add("drop-above");
+      } else {
+        this.classList.add("drop-below");
+      }
+      return false;
+    };
+    const handleModalDragEnter = function() {
+      this.classList.add("drag-over");
+    };
+    const handleModalDragLeave = function() {
+      this.classList.remove("drag-over", "drop-above", "drop-below");
+    };
+    const handleModalDrop = async function(e) {
+      if (e.stopPropagation) {
+        e.stopPropagation();
+      }
+      const dropPosition = this.classList.contains("drop-above") ? "above" : "below";
+      this.classList.remove("drag-over", "drop-above", "drop-below");
+      if (modalDragSrcEl !== this) {
+        const oldIndex = parseInt(modalDragSrcEl.dataset.index || "0");
+        let newIndex = parseInt(this.dataset.index || "0");
+        if (dropPosition === "below") {
+          newIndex++;
+        }
+        const settings = await getSettings();
+        const newTabs = [...settings.tabs];
+        const [movedTab] = newTabs.splice(oldIndex, 1);
+        if (oldIndex < newIndex) {
+          newIndex--;
+        }
+        newTabs.splice(newIndex, 0, movedTab);
+        await updateTabOrder(newTabs);
+        refreshList();
+        currentSettings = await getSettings();
+        renderTabs();
+      }
+      return false;
+    };
+    const handleModalDragEnd = function() {
+      modalDragSrcEl = null;
+      list.querySelectorAll("li").forEach((item) => {
+        item.classList.remove("drag-over", "dragging", "drop-above", "drop-below");
+      });
+    };
     const refreshList = async () => {
       const settings = await getSettings();
       list.innerHTML = "";
       settings.tabs.forEach((tab, index) => {
         const li = document.createElement("li");
+        li.setAttribute("draggable", "true");
+        li.dataset.index = index.toString();
         li.innerHTML = `
-                <span>${tab.title} <small style="color: #888; font-size: 0.8em;">(${tab.type})</small></span>
+                <div class="modal-drag-handle" title="Drag to reorder">
+                    <svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </div>
+                <span class="tab-info">${tab.title} <small style="color: #888; font-size: 0.8em;">(${tab.type === "hash" ? "Custom" : "Label"})</small></span>
                 <div class="actions">
                     ${index > 0 ? '<button class="up-btn">\u2191</button>' : ""}
                     ${index < settings.tabs.length - 1 ? '<button class="down-btn">\u2193</button>' : ""}
@@ -452,36 +511,105 @@
         li.querySelector(".remove-btn")?.addEventListener("click", async () => {
           await removeTab(tab.id);
           refreshList();
+          currentSettings = await getSettings();
+          renderTabs();
         });
         li.querySelector(".up-btn")?.addEventListener("click", async () => {
           const newTabs = [...settings.tabs];
           [newTabs[index - 1], newTabs[index]] = [newTabs[index], newTabs[index - 1]];
           await updateTabOrder(newTabs);
           refreshList();
+          currentSettings = await getSettings();
+          renderTabs();
         });
         li.querySelector(".down-btn")?.addEventListener("click", async () => {
           const newTabs = [...settings.tabs];
           [newTabs[index + 1], newTabs[index]] = [newTabs[index], newTabs[index + 1]];
           await updateTabOrder(newTabs);
           refreshList();
+          currentSettings = await getSettings();
+          renderTabs();
         });
+        li.addEventListener("dragstart", handleModalDragStart);
+        li.addEventListener("dragover", handleModalDragOver);
+        li.addEventListener("dragenter", handleModalDragEnter);
+        li.addEventListener("dragleave", handleModalDragLeave);
+        li.addEventListener("drop", handleModalDrop);
+        li.addEventListener("dragend", handleModalDragEnd);
         list.appendChild(li);
       });
     };
+    const errorMsg = modal.querySelector("#modal-error-msg");
+    input.addEventListener("input", () => {
+      input.classList.remove("input-error");
+      errorMsg.style.display = "none";
+    });
     addBtn.addEventListener("click", async () => {
       let value = input.value.trim();
+      let title = titleInput.value.trim();
       if (value) {
-        if (value.toLowerCase().startsWith("label:")) {
-          value = value.substring(6).trim();
+        let type = "label";
+        let finalValue = value;
+        if (value.includes("http") || value.includes("mail.google.com") || value.startsWith("#")) {
+          type = "hash";
+          if (value.includes("#")) {
+            finalValue = "#" + value.split("#")[1];
+          }
+        } else {
+          if (value.toLowerCase().startsWith("label:")) {
+            finalValue = value.substring(6).trim();
+          }
         }
-        if (value) {
-          await addTab(value, value, "label");
-          input.value = "";
-          refreshList();
+        const settings = await getSettings();
+        const existingTab = settings.tabs.find((t) => t.value === finalValue);
+        if (existingTab) {
+          input.classList.add("input-error");
+          errorMsg.textContent = `View URL / Label already exists with tab display name as "${existingTab.title}"`;
+          errorMsg.style.display = "block";
+          return;
         }
+        if (type === "hash") {
+          if (!title) {
+            alert("Please enter a Title for this tab.");
+            titleInput.focus();
+            return;
+          }
+          await addTab(title, finalValue, "hash");
+        } else {
+          await addTab(title || finalValue, finalValue, "label");
+        }
+        input.value = "";
+        titleInput.value = "";
+        titleGroup.style.display = "none";
+        input.classList.remove("input-error");
+        errorMsg.style.display = "none";
+        refreshList();
+        currentSettings = await getSettings();
+        renderTabs();
       }
     });
     refreshList();
+    const themeBtns = modal.querySelectorAll(".theme-btn");
+    const updateThemeUI = (activeTheme) => {
+      themeBtns.forEach((btn) => {
+        if (btn.dataset.theme === activeTheme) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+    };
+    getSettings().then((settings) => {
+      updateThemeUI(settings.theme);
+    });
+    themeBtns.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const theme = btn.dataset.theme;
+        await saveSettings({ theme });
+        updateThemeUI(theme);
+        applyTheme(theme);
+      });
+    });
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
