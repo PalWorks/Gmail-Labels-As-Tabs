@@ -321,109 +321,10 @@
     });
     refreshList();
   }
-  function initLabelDropdownObserver() {
-    const observer2 = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node instanceof HTMLElement) {
-            if (node.classList.contains("J-M") || node.querySelector(".J-M")) {
-              handleMenuOpen(node);
-            }
-          }
-        }
-      }
-    });
-    observer2.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-  }
-  function handleMenuOpen(container) {
-    const menu = container.classList.contains("J-M") ? container : container.querySelector(".J-M");
-    if (!menu) return;
-    const labelColorItem = Array.from(menu.querySelectorAll("div")).find((el) => el.textContent === "Label colour" || el.textContent === "Label color");
-    if (labelColorItem) {
-      injectLabelOptions(menu);
-    }
-  }
-  function injectLabelOptions(menu) {
-    if (menu.querySelector(".gmail-tabs-option")) return;
-    const separator = menu.querySelector(".J-M-Jz");
-    const addToTabsItem = createMenuItem("Add to tabs", async () => {
-      const labelName = getLabelNameFromTrigger();
-      if (labelName) {
-        await addLabel(labelName);
-        renderTabs();
-        menu.style.display = "none";
-      }
-    });
-    const addWithSubItem = createMenuItem("Add to tabs (including sublabels)", async () => {
-      const labelName = getLabelNameFromTrigger();
-      if (labelName) {
-        await addLabel(labelName);
-        renderTabs();
-        menu.style.display = "none";
-      }
-    });
-    if (menu.firstChild) {
-      menu.insertBefore(addWithSubItem, menu.firstChild);
-      menu.insertBefore(addToTabsItem, menu.firstChild);
-      const sep = document.createElement("div");
-      sep.className = "J-M-Jz gmail-tabs-separator";
-      sep.setAttribute("role", "separator");
-      sep.style.userSelect = "none";
-      menu.insertBefore(sep, addWithSubItem.nextSibling?.nextSibling || null);
-    }
-  }
-  function createMenuItem(text, onClick) {
-    const item = document.createElement("div");
-    item.className = "J-N J-Ks gmail-tabs-option";
-    item.setAttribute("role", "menuitem");
-    item.style.userSelect = "none";
-    item.innerHTML = `
-        <div class="J-N-Jz">
-            <div class="J-N-C">
-                <div class="J-N-J5"></div>
-            </div>
-            <div class="J-N-T">${text}</div>
-        </div>
-    `;
-    item.addEventListener("mouseenter", () => {
-      item.classList.add("J-N-JT");
-    });
-    item.addEventListener("mouseleave", () => {
-      item.classList.remove("J-N-JT");
-    });
-    item.addEventListener("click", (e) => {
-      e.stopPropagation();
-      onClick();
-    });
-    return item;
-  }
-  function getLabelNameFromTrigger() {
-    const activeBtn = document.querySelector('div[aria-expanded="true"][role="button"], span[aria-expanded="true"]');
-    if (activeBtn) {
-      let parent = activeBtn.parentElement;
-      while (parent && parent.tagName !== "BODY") {
-        const labelNameEl = parent.querySelector("[title]");
-        if (labelNameEl) {
-          const title = labelNameEl.getAttribute("title");
-          if (title && title !== "Label colour") return title;
-        }
-        if (parent.getAttribute("title")) {
-          return parent.getAttribute("title");
-        }
-        parent = parent.parentElement;
-        if (parent && parent.classList.contains("aim")) break;
-      }
-    }
-    return null;
-  }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
-  initLabelDropdownObserver();
 })();
 //# sourceMappingURL=content.js.map
