@@ -189,7 +189,9 @@ function handleUnreadUpdates(updates: { label: string; count: number }[]) {
             // The XHR interception might return internal IDs (like ^i) or display names. 
             // We might need a mapping. For now, let's assume custom labels match.
             else if (tabValue.startsWith('#label/')) {
-                labelId = tabValue.replace('#label/', '');
+                // Decode the label name from the hash (e.g. Delete%2FNotifications -> Delete/Notifications)
+                // Also replace + with space as Gmail uses + for spaces in URLs
+                labelId = decodeURIComponent(tabValue.replace('#label/', '').replace(/\+/g, ' '));
             }
         }
 
