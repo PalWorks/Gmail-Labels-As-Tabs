@@ -5,6 +5,8 @@
  * Handles opening the options page.
  */
 
+import '@inboxsdk/core/background.js';
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'openOptions') {
         chrome.runtime.openOptionsPage();
@@ -13,7 +15,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.action.onClicked.addListener((tab) => {
     if (tab.id) {
-        chrome.tabs.sendMessage(tab.id, { action: "TOGGLE_SETTINGS" });
+        chrome.tabs.sendMessage(tab.id, { action: "TOGGLE_SETTINGS" })
+            .catch((err) => {
+                // Ignore errors if the content script isn't ready
+                console.warn("Could not send message to tab:", err);
+            });
     }
 });
 

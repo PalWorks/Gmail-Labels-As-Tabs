@@ -5,7 +5,8 @@
   "description": "__MSG_appDescription__",
   "default_locale": "en",
   "permissions": [
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://mail.google.com/*"
@@ -18,6 +19,10 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "icons": {
     "16": "icons/icon16.png",
@@ -41,5 +46,16 @@
   ],
   "background": {
     "service_worker": "js/background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "js/xhrInterceptor.js",
+        "pageWorld.js"
+      ],
+      "matches": [
+        "https://mail.google.com/*"
+      ]
+    }
+  ]
 }

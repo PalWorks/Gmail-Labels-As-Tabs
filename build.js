@@ -10,7 +10,8 @@ const commonConfig = {
         'src/content.ts',
         'src/options.ts',
         'src/popup.ts',
-        'src/background.ts'
+        'src/background.ts',
+        'src/xhrInterceptor.ts'
     ],
     bundle: true,
     outdir: 'dist/js',
@@ -27,6 +28,8 @@ async function build() {
         console.log('Watching for changes...');
     } else {
         await esbuild.build(commonConfig);
+        // Copy SDK pageWorld.js to root of dist
+        fs.copyFileSync('node_modules/@inboxsdk/core/pageWorld.js', 'dist/pageWorld.js');
         console.log('Build complete.');
     }
 }

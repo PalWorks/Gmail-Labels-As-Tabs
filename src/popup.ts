@@ -9,14 +9,18 @@ import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, Settings,
 
 // --- Theme Logic ---
 const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+let currentAccount: string | null = null;
 
 async function initTheme() {
-    const settings = await getSettings();
+    if (!currentAccount) return;
+    const settings = await getSettings(currentAccount);
     if (themeSelect) {
         themeSelect.value = settings.theme;
         themeSelect.addEventListener('change', async () => {
-            const newTheme = themeSelect.value as 'system' | 'light' | 'dark';
-            await saveSettings({ theme: newTheme });
+            if (currentAccount) {
+                const newTheme = themeSelect.value as 'system' | 'light' | 'dark';
+                await saveSettings(currentAccount, { theme: newTheme });
+            }
         });
     }
 }
@@ -47,7 +51,7 @@ async function initTabs() {
 }
 
 async function handleAddTab() {
-    if (!tabInput) return;
+    if (!tabInput || !currentAccount) return;
 
     let value = tabInput.value.trim();
     if (value) {
@@ -57,7 +61,7 @@ async function handleAddTab() {
         }
 
         if (value) {
-            await addTab(value, value, 'label');
+            await addTab(currentAccount, value, value, 'label');
             tabInput.value = '';
             await renderTabsList();
         }
@@ -65,7 +69,8 @@ async function handleAddTab() {
 }
 
 async function renderTabsList() {
-    const settings = await getSettings();
+    if (!currentAccount) return;
+    const settings = await getSettings(currentAccount);
     if (!tabsList) return;
 
     tabsList.innerHTML = '';
@@ -100,8 +105,10 @@ async function renderTabsList() {
         removeBtn.textContent = '✕';
         removeBtn.title = 'Remove Tab';
         removeBtn.addEventListener('click', async () => {
-            await removeTab(tab.id);
-            await renderTabsList();
+            if (currentAccount) {
+                await removeTab(currentAccount, tab.id);
+                await renderTabsList();
+            }
         });
         li.appendChild(removeBtn);
 
@@ -152,16 +159,16 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
         e.stopPropagation();
     }
 
-    if (dragSrcEl !== this) {
+    if (dragSrcEl !== this && currentAccount) {
         const oldIndex = parseInt(dragSrcEl!.dataset.index || '0');
         const newIndex = parseInt(this.dataset.index || '0');
 
-        const settings = await getSettings();
+        const settings = await getSettings(currentAccount);
         const tabs = [...settings.tabs];
         const [movedTab] = tabs.splice(oldIndex, 1);
         tabs.splice(newIndex, 0, movedTab);
 
-        await updateTabOrder(tabs);
+        await updateTabOrder(currentAccount, tabs);
         await renderTabsList();
     }
     return false;
@@ -176,6 +183,37 @@ function handleDragEnd(this: HTMLElement, e: DragEvent) {
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    initTabs();
+    // Try to get account from active tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        if (activeTab && activeTab.id && activeTab.url && activeTab.url.includes('mail.google.com')) {
+            chrome.tabs.sendMessage(activeTab.id, { action: 'GET_ACCOUNT_INFO' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    // Content script might not be ready or not injected
+                    console.log('Could not connect to content script');
+                    showError('Please reload Gmail or navigate to a Gmail tab.');
+                    return;
+                }
+
+                if (response && response.account) {
+                    currentAccount = response.account;
+                    initTheme();
+                    initTabs();
+                } else {
+                    showError('Could not detect Gmail account. Please wait for Gmail to load.');
+                }
+            });
+        } else {
+            showError('Please open Gmail to configure tabs.');
+        }
+    });
 });
+
+function showError(msg: string) {
+    if (tabsList) {
+        tabsList.innerHTML = `<li style="padding:10px; color:#666;">${msg}</li>`;
+    }
+    if (addTabBtn) addTabBtn.disabled = true;
+    if (tabInput) tabInput.disabled = true;
+    if (themeSelect) themeSelect.disabled = true;
+}

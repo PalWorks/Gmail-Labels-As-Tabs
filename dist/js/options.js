@@ -6,36 +6,74 @@
     theme: "system",
     showUnreadCount: false
   };
-  async function getSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(null, (items) => {
-        const settings = { ...DEFAULT_SETTINGS, ...items };
-        if (settings.labels && settings.labels.length > 0 && (!settings.tabs || settings.tabs.length === 0)) {
-          console.log("Migrating legacy labels to tabs...");
-          settings.tabs = settings.labels.map((l) => ({
-            id: l.id,
-            title: l.displayName || l.name,
-            type: "label",
-            value: l.name
-          }));
-          delete settings.labels;
-          chrome.storage.sync.set(settings);
+  function getAccountKey(accountId) {
+    return `account_${accountId}`;
+  }
+  function checkRuntimeError(reject) {
+    if (chrome.runtime.lastError) {
+      const msg = chrome.runtime.lastError.message;
+      console.warn("Gmail Tabs: Storage Error:", msg);
+      if (msg && msg.includes("Extension context invalidated")) {
+        console.error("Gmail Tabs: Extension context invalidated. Please refresh the page.");
+        reject(new Error("Extension context invalidated"));
+      } else {
+        reject(new Error(msg));
+      }
+      return true;
+    }
+    return false;
+  }
+  async function getSettings(accountId) {
+    return new Promise((resolve, reject) => {
+      const key = getAccountKey(accountId);
+      try {
+        chrome.storage.sync.get([key], (items) => {
+          if (checkRuntimeError(reject)) return;
+          const stored = items[key];
+          const settings = { ...DEFAULT_SETTINGS, ...stored };
+          resolve(settings);
+        });
+      } catch (e) {
+        console.warn("Gmail Tabs: Storage call failed", e);
+        reject(e);
+      }
+    });
+  }
+  async function getAllAccounts() {
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.storage.sync.get(null, (items) => {
+          if (checkRuntimeError(reject)) return;
+          const accounts = Object.keys(items).filter((k) => k.startsWith("account_")).map((k) => k.replace("account_", ""));
+          resolve(accounts);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+  async function saveSettings(accountId, newSettings) {
+    try {
+      const currentSettings = await getSettings(accountId);
+      const mergedSettings = { ...currentSettings, ...newSettings };
+      const key = getAccountKey(accountId);
+      return new Promise((resolve, reject) => {
+        try {
+          chrome.storage.sync.set({ [key]: mergedSettings }, () => {
+            if (checkRuntimeError(reject)) return;
+            resolve();
+          });
+        } catch (e) {
+          reject(e);
         }
-        resolve(settings);
       });
-    });
+    } catch (e) {
+      console.warn("Gmail Tabs: Save settings failed", e);
+      throw e;
+    }
   }
-  async function saveSettings(newSettings) {
-    const currentSettings = await getSettings();
-    const mergedSettings = { ...currentSettings, ...newSettings };
-    return new Promise((resolve) => {
-      chrome.storage.sync.set(mergedSettings, () => {
-        resolve();
-      });
-    });
-  }
-  async function addTab(title, value, type = "label") {
-    const settings = await getSettings();
+  async function addTab(accountId, title, value, type = "label") {
+    const settings = await getSettings(accountId);
     const newTab = {
       id: crypto.randomUUID(),
       title: title.trim(),
@@ -44,18 +82,18 @@
     };
     if (!settings.tabs.some((t) => t.value === newTab.value)) {
       settings.tabs.push(newTab);
-      await saveSettings(settings);
+      await saveSettings(accountId, settings);
     }
   }
-  async function removeTab(tabId) {
-    const settings = await getSettings();
+  async function removeTab(accountId, tabId) {
+    const settings = await getSettings(accountId);
     settings.tabs = settings.tabs.filter((t) => t.id !== tabId);
-    await saveSettings(settings);
+    await saveSettings(accountId, settings);
   }
-  async function updateTabOrder(newTabs) {
-    const settings = await getSettings();
+  async function updateTabOrder(accountId, newTabs) {
+    const settings = await getSettings(accountId);
     settings.tabs = newTabs;
-    await saveSettings(settings);
+    await saveSettings(accountId, settings);
   }
 
   // src/options.ts
@@ -66,19 +104,65 @@
   var importBtn = document.getElementById("import-btn");
   var importFile = document.getElementById("import-file");
   var themeSelect = document.getElementById("theme-select");
+  var accountSelect = document.getElementById("account-select");
+  var currentAccount = null;
   document.addEventListener("DOMContentLoaded", async () => {
-    const settings = await getSettings();
-    renderList();
-    if (themeSelect) {
-      themeSelect.value = settings.theme;
+    await loadAccounts();
+    if (currentAccount) {
+      const settings = await getSettings(currentAccount);
+      if (themeSelect) {
+        themeSelect.value = settings.theme;
+      }
+      renderList();
     }
+    accountSelect?.addEventListener("change", async () => {
+      currentAccount = accountSelect.value;
+      const settings = await getSettings(currentAccount);
+      if (themeSelect) {
+        themeSelect.value = settings.theme;
+      }
+      renderList();
+    });
     themeSelect?.addEventListener("change", async () => {
+      if (!currentAccount) return;
       const theme = themeSelect.value;
-      await saveSettings({ theme });
+      await saveSettings(currentAccount, { theme });
     });
   });
+  async function loadAccounts() {
+    const accounts = await getAllAccounts();
+    if (accountSelect) {
+      accountSelect.innerHTML = "";
+      if (accounts.length === 0) {
+        const option = document.createElement("option");
+        option.text = "No accounts found. Please open Gmail first.";
+        option.disabled = true;
+        option.selected = true;
+        accountSelect.appendChild(option);
+        disableControls(true);
+      } else {
+        accounts.forEach((acc) => {
+          const option = document.createElement("option");
+          option.value = acc;
+          option.text = acc;
+          accountSelect.appendChild(option);
+        });
+        currentAccount = accounts[0];
+        accountSelect.value = currentAccount;
+        disableControls(false);
+      }
+    }
+  }
+  function disableControls(disabled) {
+    if (addBtn) addBtn.disabled = disabled;
+    if (newLabelInput) newLabelInput.disabled = disabled;
+    if (exportBtn) exportBtn.disabled = disabled;
+    if (importBtn) importBtn.disabled = disabled;
+    if (themeSelect) themeSelect.disabled = disabled;
+  }
   async function renderList() {
-    const settings = await getSettings();
+    if (!currentAccount) return;
+    const settings = await getSettings(currentAccount);
     if (!labelList) return;
     labelList.innerHTML = "";
     settings.tabs.forEach((tab, index) => {
@@ -96,8 +180,10 @@
     `;
       const removeBtn = li.querySelector(".remove-btn");
       removeBtn.addEventListener("click", async () => {
-        await removeTab(tab.id);
-        renderList();
+        if (currentAccount) {
+          await removeTab(currentAccount, tab.id);
+          renderList();
+        }
       });
       li.addEventListener("dragstart", handleDragStart);
       li.addEventListener("dragover", handleDragOver);
@@ -110,8 +196,8 @@
   if (addBtn) {
     addBtn.addEventListener("click", async () => {
       const name = newLabelInput.value;
-      if (name) {
-        await addTab(name, name, "label");
+      if (name && currentAccount) {
+        await addTab(currentAccount, name, name, "label");
         newLabelInput.value = "";
         renderList();
       }
@@ -126,11 +212,12 @@
   }
   if (exportBtn) {
     exportBtn.addEventListener("click", async () => {
-      const settings = await getSettings();
+      if (!currentAccount) return;
+      const settings = await getSettings(currentAccount);
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
       const downloadAnchorNode = document.createElement("a");
       downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
+      downloadAnchorNode.setAttribute("download", `gmail_tabs_settings_${currentAccount}.json`);
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
@@ -144,14 +231,14 @@
   if (importFile) {
     importFile.addEventListener("change", (event) => {
       const file = event.target.files?.[0];
-      if (!file) return;
+      if (!file || !currentAccount) return;
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const content = e.target?.result;
           const settings = JSON.parse(content);
           if (Array.isArray(settings.tabs)) {
-            await saveSettings(settings);
+            await saveSettings(currentAccount, settings);
             renderList();
             alert("Settings imported successfully!");
           } else {
@@ -189,13 +276,13 @@
     if (e.stopPropagation) {
       e.stopPropagation();
     }
-    if (dragSrcEl !== this) {
-      const settings = await getSettings();
+    if (dragSrcEl !== this && currentAccount) {
+      const settings = await getSettings(currentAccount);
       const oldIndex = parseInt(dragSrcEl.dataset.index);
       const newIndex = parseInt(this.dataset.index);
       const item = settings.tabs.splice(oldIndex, 1)[0];
       settings.tabs.splice(newIndex, 0, item);
-      await updateTabOrder(settings.tabs);
+      await updateTabOrder(currentAccount, settings.tabs);
       renderList();
     }
     return false;

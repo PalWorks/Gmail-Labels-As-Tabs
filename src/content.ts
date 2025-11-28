@@ -3,12 +3,14 @@
  *
  * Main content script for Gmail Labels as Tabs.
  * Handles DOM injection, navigation monitoring, and tab rendering.
+ * Integrated with InboxSDK for robust navigation and account detection.
  */
 
-import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, updateTab, Settings, Tab } from './utils/storage';
+import * as InboxSDK from '@inboxsdk/core';
+import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, updateTab, Settings, Tab, migrateLegacySettingsIfNeeded } from './utils/storage';
 
-// Start the dropdown observer
-// initLabelDropdownObserver(); // Removed duplicate call
+// App ID provided by user
+const APP_ID = 'sdk_Gmail-Tabs_2488593e74';
 
 // Selectors for Gmail elements
 // We target the main toolbar container to inject below it.
@@ -22,42 +24,247 @@ const MODAL_ID = 'gmail-labels-settings-modal';
 
 let currentSettings: Settings | null = null;
 let observer: MutationObserver | null = null;
+let currentSdk: any | null = null;
+let currentUserEmail: string | null = null;
 
 /**
  * Initialize the extension.
  */
 async function init() {
-    currentSettings = await getSettings();
+    console.log('Gmail Tabs: Initializing...');
+    // Inject pageWorld.js immediately for XHR interception
+    injectPageWorld();
 
-    // Listen for storage changes to update tabs in real-time
-    chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync') {
-            if (changes.tabs) {
-                currentSettings!.tabs = changes.tabs.newValue;
-                renderTabs();
-            }
-            if (changes.theme) {
-                currentSettings!.theme = changes.theme.newValue;
-                applyTheme(currentSettings!.theme);
-            }
-        }
-    });
+    // 1. Start DOM-based initialization IMMEDIATELY
+    // This ensures the tabs appear ASAP, even if SDK is slow or fails
+    initializeFromDOM();
 
-    // Initial render attempt
+    // 2. Try to load InboxSDK in parallel for enhancement
+    loadInboxSDK();
+
+    // Initial render attempt and observer start (these can run even without settings loaded yet)
     attemptInjection();
-
-    // Start observing DOM for navigation/loading
     startObserver();
 
     // Listen for URL changes (popstate)
     window.addEventListener('popstate', handleUrlChange);
 
+    // Listen for storage changes to update tabs in real-time
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'sync') {
+            console.log('Gmail Tabs: Storage changed', changes);
+
+            if (currentUserEmail) {
+                const accountKey = `account_${currentUserEmail}`;
+                // Only reload if our account's settings changed OR if it's a legacy migration (global keys)
+                const relevantKeys = [accountKey, 'theme', 'tabs', 'labels']; // tabs/labels for legacy
+                const hasRelevantChange = Object.keys(changes).some(k => relevantKeys.includes(k));
+
+                if (hasRelevantChange) {
+                    getSettings(currentUserEmail).then(settings => {
+                        currentSettings = settings;
+                        console.log('Gmail Tabs: Reloaded settings for', currentUserEmail, currentSettings);
+                        renderTabs();
+                        // Theme update
+                        if (changes.theme) {
+                            applyTheme(currentSettings.theme);
+                        }
+                    });
+                }
+            }
+        }
+    });
+
     // Listen for messages from background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.action === 'TOGGLE_SETTINGS') {
             toggleSettingsModal();
+        } else if (message.action === 'GET_ACCOUNT_INFO') {
+            sendResponse({ account: currentUserEmail });
         }
     });
+
+    // Listen for unread updates from pageWorld.js
+    document.addEventListener('gmailTabs:unreadUpdate', (e: any) => {
+        const updates = e.detail;
+        if (updates && Array.isArray(updates)) {
+            handleUnreadUpdates(updates);
+        }
+    });
+}
+
+async function initializeFromDOM() {
+    console.log('Gmail Tabs: Starting DOM-based initialization...');
+    let email = extractEmailFromDOM();
+    if (email) {
+        console.log('Gmail Tabs: Email found immediately:', email);
+        if (!currentUserEmail) {
+            currentUserEmail = email;
+            await finalizeInit(email);
+        }
+    } else {
+        console.log('Gmail Tabs: Email not found yet, polling DOM...');
+        const accountPoller = setInterval(async () => {
+            email = extractEmailFromDOM();
+            if (email) {
+                console.log('Gmail Tabs: Account detected via polling:', email);
+                clearInterval(accountPoller);
+                if (!currentUserEmail) {
+                    currentUserEmail = email;
+                    await finalizeInit(email);
+                }
+            }
+        }, 1000);
+
+        // Stop polling after 60 seconds
+        setTimeout(() => clearInterval(accountPoller), 60000);
+    }
+}
+
+async function loadInboxSDK() {
+    try {
+        console.log('Gmail Tabs: Attempting to load InboxSDK (Background)...');
+        // We don't await this in the main init flow anymore
+        const sdk = await InboxSDK.load(2, APP_ID);
+        currentSdk = sdk;
+        console.log('Gmail Tabs: InboxSDK loaded.');
+
+        // If we still haven't found the email via DOM (rare), use SDK
+        if (!currentUserEmail) {
+            const sdkEmail = sdk.User.getEmailAddress();
+            console.log('Gmail Tabs: Got email from SDK:', sdkEmail);
+            currentUserEmail = sdkEmail;
+            await finalizeInit(currentUserEmail);
+        }
+
+        // Robust Active Tab Highlighting via SDK
+        currentSdk.Router.handleAllRoutes((routeView: any) => {
+            updateActiveTab();
+        });
+
+    } catch (err) {
+        console.warn('Gmail Tabs: InboxSDK failed to load (Non-fatal):', err);
+        // We don't need to do anything else, DOM fallback is already running
+    }
+}
+
+function injectPageWorld() {
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('js/xhrInterceptor.js');
+    script.onload = function () {
+        // @ts-ignore
+        this.remove();
+    };
+    (document.head || document.documentElement).appendChild(script);
+}
+
+function handleUnreadUpdates(updates: { label: string; count: number }[]) {
+    // console.log('Gmail Tabs: Received unread updates', updates);
+
+    // Map updates to a quick lookup
+    const updateMap = new Map<string, number>();
+    updates.forEach(u => updateMap.set(u.label, u.count));
+
+    // Update visible tabs
+    const bar = document.getElementById(TABS_BAR_ID);
+    if (!bar) return;
+
+    const tabs = bar.querySelectorAll('.gmail-tab');
+    tabs.forEach(t => {
+        const tabEl = t as HTMLElement;
+        const tabValue = tabEl.dataset.value;
+        const tabType = tabEl.dataset.type;
+
+        if (!tabValue) return;
+
+        let labelId = '';
+        if (tabType === 'label') {
+            labelId = tabValue;
+        } else if (tabType === 'hash') {
+            if (tabValue === '#inbox') labelId = '^i';
+            else if (tabValue === '#starred') labelId = '^t';
+            else if (tabValue === '#sent') labelId = '^f'; // Sent is usually ^f (from) or ^s? Gmail uses ^f for sent usually? No wait, ^i=inbox, ^t=starred, ^r=drafts, ^s=spam? ^f=sent? 
+            // Actually, let's just rely on the label name matching for custom labels, and map system labels if needed.
+            // For now, let's try to match exact label names if they come through as such.
+            // The XHR interception might return internal IDs (like ^i) or display names. 
+            // We might need a mapping. For now, let's assume custom labels match.
+            else if (tabValue.startsWith('#label/')) {
+                labelId = tabValue.replace('#label/', '');
+            }
+        }
+
+        // Check if we have an update for this label
+        // We try both the raw labelId and mapped system IDs
+        let count = updateMap.get(labelId);
+
+        // System Label Mapping (Common ones)
+        if (count === undefined) {
+            if (tabValue === '#inbox') count = updateMap.get('^i');
+            else if (tabValue === '#starred') count = updateMap.get('^t');
+            else if (tabValue === '#drafts') count = updateMap.get('^r');
+            else if (tabValue === '#sent') count = updateMap.get('^f'); // Sent
+            else if (tabValue === '#spam') count = updateMap.get('^s'); // Spam
+            else if (tabValue === '#trash') count = updateMap.get('^k'); // Trash
+            else if (tabValue === '#all') count = updateMap.get('^all'); // All Mail
+        }
+
+        if (count !== undefined) {
+            const countSpan = tabEl.querySelector('.unread-count');
+            if (countSpan) {
+                countSpan.textContent = count > 0 ? count.toString() : '';
+            }
+        }
+    });
+}
+
+async function finalizeInit(email: string) {
+    console.log('Gmail Tabs: Finalizing init for', email);
+    try {
+        // Ensure settings exist or migrate
+        await migrateLegacySettingsIfNeeded(email);
+        console.log('Gmail Tabs: Migration check complete');
+        currentSettings = await getSettings(email);
+        console.log('Gmail Tabs: Settings loaded for', email, currentSettings);
+        renderTabs();
+        applyTheme(currentSettings.theme);
+    } catch (e) {
+        console.error('Gmail Tabs: Error in finalizeInit', e);
+    }
+}
+
+/**
+ * Helper to extract email if SDK fails
+ */
+function extractEmailFromDOM(): string | null {
+    console.log('Gmail Tabs: Extracting email from DOM...');
+
+    // 1. Try Document Title
+    const title = document.title;
+    console.log('Gmail Tabs: Document Title:', title);
+    // Regex allowing for + aliases and standard chars
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
+
+    const titleMatch = title.match(emailRegex);
+    if (titleMatch) {
+        console.log('Gmail Tabs: Found email in title:', titleMatch[1]);
+        return titleMatch[1];
+    }
+
+    // 2. Try Account Button (aria-label)
+    // Look for elements with aria-label containing @ and "Google Account" or similar
+    const accountElement = document.querySelector('[aria-label*="@"][aria-label*="Google Account"], a[aria-label*="@"]');
+    if (accountElement) {
+        const label = accountElement.getAttribute('aria-label');
+        console.log('Gmail Tabs: Found account element label:', label);
+        const emailMatch = label?.match(emailRegex);
+        if (emailMatch) {
+            console.log('Gmail Tabs: Found email in aria-label:', emailMatch[1]);
+            return emailMatch[1];
+        }
+    }
+
+    console.log('Gmail Tabs: Could not extract email from DOM.');
+    return null;
 }
 
 /**
@@ -157,7 +364,7 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
         const newIndex = parseInt(this.dataset.index || '0');
 
         // Optimistic update
-        if (currentSettings) {
+        if (currentSettings && currentUserEmail) {
             const tabs = [...currentSettings.tabs];
             const [movedTab] = tabs.splice(oldIndex, 1);
             tabs.splice(newIndex, 0, movedTab);
@@ -167,7 +374,7 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
             renderTabs();
 
             // Persist
-            await updateTabOrder(tabs);
+            await updateTabOrder(currentUserEmail, tabs);
         }
     }
     return false;
@@ -236,9 +443,9 @@ function renderTabs() {
         deleteBtn.title = 'Remove Tab';
         deleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (confirm(`Remove tab "${tab.title}"?`)) {
-                await removeTab(tab.id);
-                currentSettings = await getSettings();
+            if (confirm(`Remove tab "${tab.title}"?`) && currentUserEmail) {
+                await removeTab(currentUserEmail, tab.id);
+                currentSettings = await getSettings(currentUserEmail);
                 renderTabs();
             }
         });
@@ -251,14 +458,41 @@ function renderTabs() {
                 return;
             }
 
-            if (tab.type === 'hash') {
-                window.location.hash = tab.value;
+            // --- InboxSDK Navigation Integration ---
+            if (currentSdk) {
+                if (tab.type === 'label') {
+                    try {
+                        // Try object syntax with 'name' (common) or 'labelName'
+                        // If it fails, fallback to hash
+                        currentSdk.Router.goto('label', { name: tab.value });
+                    } catch (e) {
+                        console.warn('Gmail Tabs: Router.goto failed, falling back to hash:', e);
+                        window.location.hash = `#label/${encodeURIComponent(tab.value)}`;
+                    }
+                } else if (tab.type === 'hash') {
+                    // Handle standard views if mapped, else hash
+                    if (tab.value === '#inbox') currentSdk.Router.goto('inbox');
+                    else if (tab.value === '#sent') currentSdk.Router.goto('sent');
+                    else if (tab.value === '#starred') currentSdk.Router.goto('starred');
+                    else if (tab.value === '#drafts') currentSdk.Router.goto('drafts');
+                    else window.location.hash = tab.value;
+                }
             } else {
-                window.location.href = getLabelUrl(tab.value);
+                // Fallback
+                if (tab.type === 'hash') {
+                    window.location.hash = tab.value;
+                } else {
+                    window.location.href = getLabelUrl(tab.value);
+                }
             }
         });
 
         // Drag Events
+        tabEl.addEventListener('dragstart', handleDragStart); // Added missing dragstart
+        tabEl.addEventListener('dragenter', handleDragEnter); // Added missing dragenter
+        tabEl.addEventListener('dragover', handleDragOver);   // Added missing dragover
+        tabEl.addEventListener('dragleave', handleDragLeave); // Added missing dragleave
+        tabEl.addEventListener('drop', handleDrop);           // Added missing drop
         tabEl.addEventListener('dragend', handleDragEnd);
 
         bar.appendChild(tabEl);
@@ -345,11 +579,11 @@ function showPinModal() {
     modal.querySelector('#pin-save-btn')?.addEventListener('click', async () => {
         const title = (modal.querySelector('#pin-title') as HTMLInputElement).value;
 
-        if (title) {
-            await addTab(title, currentHash, 'hash');
+        if (title && currentUserEmail) {
+            await addTab(currentUserEmail, title, currentHash, 'hash');
             close();
             // Refresh settings and re-render
-            currentSettings = await getSettings();
+            currentSettings = await getSettings(currentUserEmail);
             renderTabs();
         }
     });
@@ -393,14 +627,14 @@ function showEditModal(tab: Tab) {
     modal.querySelector('#edit-save-btn')?.addEventListener('click', async () => {
         const title = (modal.querySelector('#edit-display-name') as HTMLInputElement).value;
 
-        if (title) {
-            await updateTab(tab.id, {
+        if (title && currentUserEmail) {
+            await updateTab(currentUserEmail, tab.id, {
                 title: title.trim()
             });
 
             close();
             // Refresh settings and re-render
-            currentSettings = await getSettings();
+            currentSettings = await getSettings(currentUserEmail);
             renderTabs();
         }
     });
@@ -478,6 +712,7 @@ function toggleSettingsModal() {
 }
 
 function createSettingsModal() {
+    console.log('Gmail Tabs: Creating settings modal (v2)');
     const modal = document.createElement('div');
     modal.id = MODAL_ID;
     modal.className = 'gmail-tabs-modal';
@@ -520,10 +755,19 @@ function createSettingsModal() {
                     <label for="modal-unread-toggle">Show Unread Count</label>
                 </div>
             </div>
+            <div class="modal-footer" style="padding: 16px; background: var(--disabled-input-bg); border-top: 1px solid var(--list-border); font-size: 0.8em; color: var(--modal-text); text-align: center;">
+                Connected as: <span id="modal-account-email" style="font-weight: bold;">Detecting...</span>
+            </div>
         </div>
     `;
 
     document.body.appendChild(modal);
+
+    // Set Account Email
+    const emailSpan = modal.querySelector('#modal-account-email');
+    if (emailSpan && currentUserEmail) {
+        emailSpan.textContent = currentUserEmail;
+    }
 
     // Event Listeners
     modal.querySelector('.close-btn')?.addEventListener('click', () => modal.remove());
@@ -553,9 +797,6 @@ function createSettingsModal() {
                 }
             }
         } else {
-            // For simple labels, we can hide the title input or keep it optional.
-            // Let's hide it to keep it simple, unless user manually opened it? 
-            // For now, auto-hide if it goes back to simple text and title is empty.
             if (!titleInput.value) {
                 titleGroup.style.display = 'none';
             }
@@ -619,31 +860,27 @@ function createSettingsModal() {
             const oldIndex = parseInt(modalDragSrcEl!.dataset.index || '0');
             let newIndex = parseInt(this.dataset.index || '0');
 
-            // Adjust newIndex based on drop position
             if (dropPosition === 'below') {
                 newIndex++;
             }
 
-            // If moving down, the index shifts because we remove the item first
-            // But if we are inserting 'below' a target that is essentially at index+1
-            // Let's simplify: remove first, then insert.
+            if (currentUserEmail) {
+                const settings = await getSettings(currentUserEmail);
+                const newTabs = [...settings.tabs];
+                const [movedTab] = newTabs.splice(oldIndex, 1);
 
-            const settings = await getSettings();
-            const newTabs = [...settings.tabs];
-            const [movedTab] = newTabs.splice(oldIndex, 1);
+                if (oldIndex < newIndex) {
+                    newIndex--;
+                }
 
-            // If we removed an item from before the target, the target's index shifted down by 1
-            if (oldIndex < newIndex) {
-                newIndex--;
+                newTabs.splice(newIndex, 0, movedTab);
+
+                await updateTabOrder(currentUserEmail, newTabs);
+                refreshList();
+                // Also update the main bar
+                currentSettings = await getSettings(currentUserEmail);
+                renderTabs();
             }
-
-            newTabs.splice(newIndex, 0, movedTab);
-
-            await updateTabOrder(newTabs);
-            refreshList();
-            // Also update the main bar
-            currentSettings = await getSettings();
-            renderTabs();
         }
         return false;
     };
@@ -656,7 +893,8 @@ function createSettingsModal() {
     };
 
     const refreshList = async () => {
-        const settings = await getSettings();
+        if (!currentUserEmail) return;
+        const settings = await getSettings(currentUserEmail);
         list.innerHTML = '';
         settings.tabs.forEach((tab, index) => {
             const li = document.createElement('li');
@@ -676,28 +914,34 @@ function createSettingsModal() {
             `;
 
             li.querySelector('.remove-btn')?.addEventListener('click', async () => {
-                await removeTab(tab.id);
-                refreshList();
-                currentSettings = await getSettings();
-                renderTabs();
+                if (currentUserEmail) {
+                    await removeTab(currentUserEmail, tab.id);
+                    refreshList();
+                    currentSettings = await getSettings(currentUserEmail);
+                    renderTabs();
+                }
             });
 
             li.querySelector('.up-btn')?.addEventListener('click', async () => {
-                const newTabs = [...settings.tabs];
-                [newTabs[index - 1], newTabs[index]] = [newTabs[index], newTabs[index - 1]];
-                await updateTabOrder(newTabs);
-                refreshList();
-                currentSettings = await getSettings();
-                renderTabs();
+                if (currentUserEmail) {
+                    const newTabs = [...settings.tabs];
+                    [newTabs[index - 1], newTabs[index]] = [newTabs[index], newTabs[index - 1]];
+                    await updateTabOrder(currentUserEmail, newTabs);
+                    refreshList();
+                    currentSettings = await getSettings(currentUserEmail);
+                    renderTabs();
+                }
             });
 
             li.querySelector('.down-btn')?.addEventListener('click', async () => {
-                const newTabs = [...settings.tabs];
-                [newTabs[index + 1], newTabs[index]] = [newTabs[index], newTabs[index + 1]];
-                await updateTabOrder(newTabs);
-                refreshList();
-                currentSettings = await getSettings();
-                renderTabs();
+                if (currentUserEmail) {
+                    const newTabs = [...settings.tabs];
+                    [newTabs[index + 1], newTabs[index]] = [newTabs[index], newTabs[index + 1]];
+                    await updateTabOrder(currentUserEmail, newTabs);
+                    refreshList();
+                    currentSettings = await getSettings(currentUserEmail);
+                    renderTabs();
+                }
             });
 
             // Add Drag Listeners
@@ -718,14 +962,13 @@ function createSettingsModal() {
     input.addEventListener('input', () => {
         input.classList.remove('input-error');
         errorMsg.style.display = 'none';
-        // ... existing input logic ...
     });
 
     addBtn.addEventListener('click', async () => {
         let value = input.value.trim();
         let title = titleInput.value.trim();
 
-        if (value) {
+        if (value && currentUserEmail) {
             // Check if it's a URL/Hash
             let type: 'label' | 'hash' = 'label';
             let finalValue = value;
@@ -744,7 +987,7 @@ function createSettingsModal() {
             }
 
             // Duplicate Check
-            const settings = await getSettings();
+            const settings = await getSettings(currentUserEmail);
             const existingTab = settings.tabs.find(t => t.value === finalValue);
 
             if (existingTab) {
@@ -760,9 +1003,9 @@ function createSettingsModal() {
                     titleInput.focus();
                     return;
                 }
-                await addTab(title, finalValue, 'hash');
+                await addTab(currentUserEmail, title, finalValue, 'hash');
             } else {
-                await addTab(title || finalValue, finalValue, 'label');
+                await addTab(currentUserEmail, title || finalValue, finalValue, 'label');
             }
 
             input.value = '';
@@ -773,7 +1016,7 @@ function createSettingsModal() {
 
             refreshList();
             // Also update the main bar
-            currentSettings = await getSettings();
+            currentSettings = await getSettings(currentUserEmail);
             renderTabs();
         }
     });
@@ -793,31 +1036,38 @@ function createSettingsModal() {
     };
 
     // Initialize UI
-    getSettings().then(settings => {
-        updateThemeUI(settings.theme);
-    });
+    if (currentUserEmail) {
+        getSettings(currentUserEmail).then(settings => {
+            updateThemeUI(settings.theme);
+        });
+    }
 
     themeBtns.forEach(btn => {
         btn.addEventListener('click', async () => {
             const theme = (btn as HTMLElement).dataset.theme as 'system' | 'light' | 'dark';
-            await saveSettings({ theme });
-            updateThemeUI(theme);
-            applyTheme(theme);
-            // currentSettings will be updated via storage listener
+            if (currentUserEmail) {
+                await saveSettings(currentUserEmail, { theme });
+                updateThemeUI(theme);
+                applyTheme(theme);
+            }
         });
     });
 
     // Unread Count Toggle Logic
     const unreadToggle = modal.querySelector('#modal-unread-toggle') as HTMLInputElement;
 
-    getSettings().then(settings => {
-        unreadToggle.checked = settings.showUnreadCount;
-    });
+    if (currentUserEmail) {
+        getSettings(currentUserEmail).then(settings => {
+            unreadToggle.checked = settings.showUnreadCount;
+        });
+    }
 
     unreadToggle.addEventListener('change', async () => {
-        await saveSettings({ showUnreadCount: unreadToggle.checked });
-        currentSettings = await getSettings();
-        renderTabs();
+        if (currentUserEmail) {
+            await saveSettings(currentUserEmail, { showUnreadCount: unreadToggle.checked });
+            currentSettings = await getSettings(currentUserEmail);
+            renderTabs();
+        }
     });
 }
 
@@ -859,16 +1109,7 @@ async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
     // If we identified a label, try fetching the feed
     if (labelForFeed !== undefined) { // labelForFeed can be '' for inbox
         try {
-            // Use current user's feed (u/0 is usually safe, or relative path)
-            // We use relative path to handle multiple accounts (u/1, u/2) correctly if running in that context
-            // The content script runs in the context of the specific tab/user, so relative path '/mail/feed/atom/' 
-            // might default to u/0. To be safe, we can try to detect the base URL or just use relative.
-            // Actually, just 'feed/atom/' relative to current page might work if we are at mail.google.com/mail/u/X/
-
             // Construct feed URL
-            // If labelForFeed is empty, it's the inbox feed.
-            // If it's a label, append it.
-            // We need to encode the label properly.
             const encodedLabel = labelForFeed ? encodeURIComponent(labelForFeed) : '';
             const feedUrl = `${location.origin}${location.pathname}feed/atom/${encodedLabel}`;
 
@@ -897,7 +1138,6 @@ async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
     }
 
     // Fallback: DOM Scraping (Original Logic)
-    // Useful for search queries or if feed fails
     const domCount = getUnreadCountFromDOM(tab);
     if (domCount) {
         countSpan.textContent = domCount;
@@ -954,16 +1194,6 @@ function getUnreadCountFromDOM(tab: Tab): string {
             // Check Aria-Label (e.g., "LabelName 5 unread messages")
             const ariaLabel = candidate.getAttribute('aria-label');
             if (ariaLabel) {
-                // Extract the label name part from aria-label? 
-                // It's hard because aria-label structure varies.
-                // But we can check if it *starts with* the label name (fuzzy)
-                // or if the normalized aria-label contains the normalized target
-                const normAria = normalizeLabel(ariaLabel);
-                // Check if normAria starts with normalizedTarget
-                // Be careful of partial matches (e.g. "Work" matching "Work/Project")
-                // But usually exact match is better.
-
-                // Let's try to extract the href label part and compare that
                 const href = candidate.getAttribute('href');
                 if (href) {
                     const hrefLabel = href.split('#label/')[1];
@@ -1014,8 +1244,4 @@ function applyTheme(theme: 'system' | 'light' | 'dark') {
 }
 
 // Initial Theme Application
-if (currentSettings) {
-    applyTheme(currentSettings.theme);
-} else {
-    getSettings().then(settings => applyTheme(settings.theme));
-}
+// We need to wait for settings load now

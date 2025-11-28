@@ -2,10 +2,10 @@
  * options.ts
  *
  * Logic for the options page.
- * Handles adding, removing, and reordering tabs.
+ * Handles adding, removing, and reordering tabs for specific accounts.
  */
 
-import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, Settings, Tab } from './utils/storage';
+import { getSettings, saveSettings, addTab, removeTab, updateTabOrder, getAllAccounts, Settings, Tab } from './utils/storage';
 
 const labelList = document.getElementById('labels-list') as HTMLDivElement;
 const newLabelInput = document.getElementById('new-label-input') as HTMLInputElement;
@@ -14,28 +14,79 @@ const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
 const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
 const importFile = document.getElementById('import-file') as HTMLInputElement;
 const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+const accountSelect = document.getElementById('account-select') as HTMLSelectElement;
+
+let currentAccount: string | null = null;
 
 // Initial setup and event listeners
 document.addEventListener('DOMContentLoaded', async () => {
-    const settings = await getSettings();
-    renderList(); // Initial render of tabs
+    await loadAccounts();
 
-    // Set initial theme selection
-    if (themeSelect) {
-        themeSelect.value = settings.theme;
+    // Set initial theme selection if account loaded
+    if (currentAccount) {
+        const settings = await getSettings(currentAccount);
+        if (themeSelect) {
+            themeSelect.value = settings.theme;
+        }
+        renderList();
     }
+
+    // Handle Account Change
+    accountSelect?.addEventListener('change', async () => {
+        currentAccount = accountSelect.value;
+        const settings = await getSettings(currentAccount);
+        if (themeSelect) {
+            themeSelect.value = settings.theme;
+        }
+        renderList();
+    });
 
     // Handle Theme Change
     themeSelect?.addEventListener('change', async () => {
+        if (!currentAccount) return;
         const theme = themeSelect.value as 'system' | 'light' | 'dark';
-        await saveSettings({ theme });
+        await saveSettings(currentAccount, { theme });
     });
 });
 
+async function loadAccounts() {
+    const accounts = await getAllAccounts();
+    if (accountSelect) {
+        accountSelect.innerHTML = '';
+        if (accounts.length === 0) {
+            const option = document.createElement('option');
+            option.text = "No accounts found. Please open Gmail first.";
+            option.disabled = true;
+            option.selected = true;
+            accountSelect.appendChild(option);
+            disableControls(true);
+        } else {
+            accounts.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc;
+                option.text = acc;
+                accountSelect.appendChild(option);
+            });
+            // Select first one by default
+            currentAccount = accounts[0];
+            accountSelect.value = currentAccount;
+            disableControls(false);
+        }
+    }
+}
+
+function disableControls(disabled: boolean) {
+    if (addBtn) addBtn.disabled = disabled;
+    if (newLabelInput) newLabelInput.disabled = disabled;
+    if (exportBtn) exportBtn.disabled = disabled;
+    if (importBtn) importBtn.disabled = disabled;
+    if (themeSelect) themeSelect.disabled = disabled;
+}
 
 // Render the list of tabs
 async function renderList() {
-    const settings = await getSettings();
+    if (!currentAccount) return;
+    const settings = await getSettings(currentAccount);
     if (!labelList) return;
     labelList.innerHTML = '';
 
@@ -57,8 +108,10 @@ async function renderList() {
         // Remove handler
         const removeBtn = li.querySelector('.remove-btn') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
-            await removeTab(tab.id);
-            renderList();
+            if (currentAccount) {
+                await removeTab(currentAccount, tab.id);
+                renderList();
+            }
         });
 
         // Drag events
@@ -76,8 +129,8 @@ async function renderList() {
 if (addBtn) {
     addBtn.addEventListener('click', async () => {
         const name = newLabelInput.value;
-        if (name) {
-            await addTab(name, name, 'label');
+        if (name && currentAccount) {
+            await addTab(currentAccount, name, name, 'label');
             newLabelInput.value = '';
             renderList();
         }
@@ -96,11 +149,12 @@ if (newLabelInput) {
 // Export settings
 if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
-        const settings = await getSettings();
+        if (!currentAccount) return;
+        const settings = await getSettings(currentAccount);
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "gmail_tabs_settings.json");
+        downloadAnchorNode.setAttribute("download", `gmail_tabs_settings_${currentAccount}.json`);
         document.body.appendChild(downloadAnchorNode); // required for firefox
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
@@ -117,7 +171,7 @@ if (importBtn) {
 if (importFile) {
     importFile.addEventListener('change', (event) => {
         const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
+        if (!file || !currentAccount) return;
 
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -125,7 +179,7 @@ if (importFile) {
                 const content = e.target?.result as string;
                 const settings = JSON.parse(content);
                 if (Array.isArray(settings.tabs)) {
-                    await saveSettings(settings);
+                    await saveSettings(currentAccount!, settings);
                     renderList();
                     alert('Settings imported successfully!');
                 } else {
@@ -171,8 +225,8 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
         e.stopPropagation();
     }
 
-    if (dragSrcEl !== this) {
-        const settings = await getSettings();
+    if (dragSrcEl !== this && currentAccount) {
+        const settings = await getSettings(currentAccount);
         const oldIndex = parseInt(dragSrcEl!.dataset.index!);
         const newIndex = parseInt(this.dataset.index!);
 
@@ -180,7 +234,7 @@ async function handleDrop(this: HTMLElement, e: DragEvent) {
         const item = settings.tabs.splice(oldIndex, 1)[0];
         settings.tabs.splice(newIndex, 0, item);
 
-        await updateTabOrder(settings.tabs);
+        await updateTabOrder(currentAccount, settings.tabs);
         renderList();
     }
     return false;
@@ -196,4 +250,3 @@ function escapeHtml(text: string) {
     };
     return text.replace(/[&<>"']/g, function (m) { return map[m]; });
 }
-
