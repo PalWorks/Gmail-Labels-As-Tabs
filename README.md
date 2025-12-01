@@ -1,10 +1,10 @@
-# Gmail Labels as Tabs
+# Gmail Labels & Queries as Tabs
 
 A Chrome extension that injects a user-configurable tabs bar into Gmail. Each tab corresponds to an exact Gmail label name chosen by the user.
 
 ## Features
 
--   **Customizable Tabs**: Add, remove, and reorder tabs for your most used labels.
+-   **Customizable Tabs**: Add, remove, and reorder tabs for your most used labels and search queries.
 -   **Seamless Integration**: Tabs look and feel like part of Gmail.
 -   **Sync**: Settings are synced across all your Chrome instances.
 -   **Privacy Focused**: No external network requests, no analytics.
@@ -44,7 +44,7 @@ A Chrome extension that injects a user-configurable tabs bar into Gmail. Each ta
 ## Usage
 
 1.  Open Gmail.
-2.  Click the extension icon or use the "Add tab" button to configure your labels.
+2.  Click the extension icon or use the "Add tab" button to configure your labels and search queries as Tabs.
 3.  Tabs will appear below the main Gmail toolbar.
 
 ## Privacy Policy
