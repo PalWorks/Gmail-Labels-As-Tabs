@@ -44,9 +44,13 @@ A Chrome extension that injects a user-configurable tabs bar into Gmail. Each ta
 ## Usage
 
 1.  Open Gmail.
-2.  Click the extension icon or use the "Add tab" button (once implemented) to configure your labels.
+2.  Click the extension icon or use the "Add tab" button to configure your labels.
 3.  Tabs will appear below the main Gmail toolbar.
 
 ## Privacy Policy
 
 This extension does not collect any user data. All settings are stored locally in your browser using `chrome.storage.sync` and are only used to display the tabs you have configured. No data is sent to any third-party servers.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
