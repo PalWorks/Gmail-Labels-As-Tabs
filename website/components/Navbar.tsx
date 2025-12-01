@@ -41,23 +41,19 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <img 
-                src="https://archive.org/download/gmail-labels-as-tabs-logo/gmail-labels-as-tabs-logo.png" 
-                alt="Logo" 
+              <img
+                src="/logo.png"
+                alt="Logo"
                 className="h-8 w-8 rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "https://ui-avatars.com/api/?name=Pin+Tabs&background=0B57D0&color=fff";
-                }}
               />
               <span className="font-medium text-lg md:text-xl text-[#1F1F1F] tracking-tight">{APP_NAME}</span>
             </Link>
           </div>
-          
+
           <div className="hidden md:flex items-center space-x-8">
             {NAV_LINKS.map((link) => (
-              <a 
-                key={link.name} 
+              <a
+                key={link.name}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
                 className="text-[#444746] hover:text-[#0B57D0] font-medium transition-colors text-sm"

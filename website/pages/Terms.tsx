@@ -7,18 +7,18 @@ export const Terms: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-3xl shadow-sm p-8 md:p-12 border border-[#E1E3E1]">
           <div className="flex items-center space-x-3 mb-8">
-             <div className="p-3 bg-[#D3E3FD] rounded-full">
+            <div className="p-3 bg-[#D3E3FD] rounded-full">
               <FileText className="w-6 h-6 text-[#0B57D0]" />
             </div>
             <h1 className="text-3xl font-normal text-[#1F1F1F]">Terms and Conditions</h1>
           </div>
-          
+
           <div className="prose prose-slate prose-lg text-[#444746]">
             <p className="mb-6">Last updated: {new Date().toLocaleDateString()}</p>
-            
+
             <h2 className="text-xl font-medium text-[#1F1F1F] mt-8 mb-4">1. Acceptance of Terms</h2>
             <p className="mb-4">
-              By downloading, installing, or using the PinTabs Chrome Extension, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the extension.
+              By downloading, installing, or using the Gmail Label & Queries as Tabs Chrome Extension, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the extension.
             </p>
 
             <h2 className="text-xl font-medium text-[#1F1F1F] mt-8 mb-4">2. License</h2>
@@ -43,7 +43,7 @@ export const Terms: React.FC = () => {
 
             <h2 className="text-xl font-medium text-[#1F1F1F] mt-8 mb-4">5. Limitation of Liability</h2>
             <p className="mb-4">
-              In no event shall PinTabs or its developers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data, or other information) arising out of or in any way related to the use of or inability to use the extension.
+              In no event shall Gmail Label & Queries as Tabs or its developers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data, or other information) arising out of or in any way related to the use of or inability to use the extension.
             </p>
 
             <h2 className="text-xl font-medium text-[#1F1F1F] mt-8 mb-4">6. Changes to Terms</h2>

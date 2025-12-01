@@ -25,14 +25,10 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div className="col-span-1">
             <Link to="/" className="flex items-center space-x-2 mb-4">
-              <img 
-                src="https://archive.org/download/gmail-labels-as-tabs-logo/gmail-labels-as-tabs-logo.png" 
-                alt="Logo" 
+              <img
+                src="/logo.png"
+                alt="Logo"
                 className="h-8 w-8 rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "https://ui-avatars.com/api/?name=Pin+Tabs&background=0B57D0&color=fff";
-                }}
               />
               <span className="font-medium text-lg text-[#1F1F1F]">{APP_NAME}</span>
             </Link>
@@ -40,7 +36,7 @@ export const Footer: React.FC = () => {
               Transforming your inbox into a productivity powerhouse. Organize your email workflow with custom pinned tabs.
             </p>
           </div>
-          
+
           <div>
             <h3 className="text-sm font-medium text-[#1F1F1F] uppercase tracking-wider mb-4">Product</h3>
             <ul className="space-y-3">
@@ -59,13 +55,13 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t border-[#E1E3E1] pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-[#444746] text-sm">
             &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved. Not affiliated with Google or Gmail.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-             
+
           </div>
         </div>
       </div>
