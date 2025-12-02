@@ -77,12 +77,12 @@ const DemoCarousel: React.FC = () => {
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
           {DEMO_ITEMS.map((item, index) => (
-            <div key={index} className="min-w-full h-full flex items-center justify-center bg-[#F6F8FC] relative">
+            <div key={index} className="min-w-full h-full bg-[#F6F8FC] relative">
               {item.type === 'image' ? (
                 <img
                   src={item.src}
                   alt={item.alt}
-                  className="w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full bg-black flex items-center justify-center">
