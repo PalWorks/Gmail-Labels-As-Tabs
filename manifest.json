@@ -6,7 +6,6 @@
   "default_locale": "en",
   "permissions": [
     "storage",
-    "scripting",
     "downloads"
   ],
   "host_permissions": [
