@@ -21,28 +21,28 @@ interface CarouselItem {
 const DEMO_ITEMS: CarouselItem[] = [
   {
     type: 'image',
-    src: '/banner-01.png',
-    alt: 'Drag & Drop Organization'
+    src: '/Gmail-Labels-Queries-As-Tabs/banner-05.png',
+    alt: 'Dark Mode Support'
   },
   {
     type: 'image',
-    src: '/banner-02.png',
-    alt: 'Rename & Customize Tabs'
-  },
-  {
-    type: 'image',
-    src: '/banner-03.png',
+    src: '/Gmail-Labels-Queries-As-Tabs/banner-03.png',
     alt: 'Pin Search Queries'
   },
   {
     type: 'image',
-    src: '/banner-04.png',
-    alt: 'Edit Tab Details'
+    src: '/Gmail-Labels-Queries-As-Tabs/banner-01.png',
+    alt: 'Drag & Drop Organization'
   },
   {
     type: 'image',
-    src: '/banner-05.png',
-    alt: 'Dark Mode Support'
+    src: '/Gmail-Labels-Queries-As-Tabs/banner-02.png',
+    alt: 'Rename & Customize Tabs'
+  },
+  {
+    type: 'image',
+    src: '/Gmail-Labels-Queries-As-Tabs/banner-04.png',
+    alt: 'Edit Tab Details'
   }
 ];
 
@@ -132,8 +132,8 @@ const DemoCarousel: React.FC = () => {
             key={index}
             onClick={() => goToSlide(index)}
             className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${index === currentIndex
-                ? 'bg-white w-6'
-                : 'bg-white/50 hover:bg-white/80'
+              ? 'bg-white w-6'
+              : 'bg-white/50 hover:bg-white/80'
               }`}
             aria-label={`Go to slide ${index + 1}`}
           />
