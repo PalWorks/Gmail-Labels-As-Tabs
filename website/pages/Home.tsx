@@ -344,7 +344,7 @@ export const Home: React.FC = () => {
                   ))}
                 </ul>
                 <div className="mt-8">
-                  <Button fullWidth size="lg">Get Started Now</Button>
+                  <Button fullWidth size="lg" onClick={() => window.open('https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde?pli=1', '_blank')}>Get Started Now</Button>
                 </div>
               </div>
             </div>
