@@ -729,8 +729,10 @@ function renderTabs() {
         // But we can keep container handlers as fallback or just rely on global?
         // Relying on global is cleaner for the "outside" requirement.
         // So we DON'T attach container handlers here anymore.
+        document.addEventListener('keydown', handleMoveModeKeydown); // Add keydown listener for Esc key
     } else {
         bar.classList.remove('move-mode');
+        document.removeEventListener('keydown', handleMoveModeKeydown);
     }
 
     currentSettings.tabs.forEach((tab, index) => {
@@ -841,15 +843,24 @@ function renderTabs() {
     if (isMoveMode) {
         const doneBtn = document.createElement('button');
         doneBtn.className = 'done-btn';
-        doneBtn.textContent = 'Done';
+        doneBtn.innerText = 'Done';
         doneBtn.addEventListener('click', () => {
             isMoveMode = false;
             renderTabs();
+            document.removeEventListener('keydown', handleMoveModeKeydown);
         });
         bar.appendChild(doneBtn);
     }
 
     updateActiveTab();
+}
+
+function handleMoveModeKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+        isMoveMode = false;
+        renderTabs();
+        document.removeEventListener('keydown', handleMoveModeKeydown);
+    }
 }
 
 // --- Dropdown Logic ---
@@ -986,7 +997,15 @@ function showPinModal() {
 
     document.body.appendChild(modal);
 
-    const close = () => modal.remove();
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+    };
     modal.querySelector('.close-btn')?.addEventListener('click', close);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) close();
@@ -1034,7 +1053,15 @@ function showEditModal(tab: Tab) {
 
     document.body.appendChild(modal);
 
-    const close = () => modal.remove();
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+    };
     modal.querySelector('.close-btn')?.addEventListener('click', close);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) close();
@@ -1081,7 +1108,15 @@ function showDeleteModal(tab: Tab) {
 
     document.body.appendChild(modal);
 
-    const close = () => modal.remove();
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+    };
     modal.querySelectorAll('.close-btn-action').forEach(btn => {
         btn.addEventListener('click', close);
     });
@@ -1184,7 +1219,15 @@ function showImportModal() {
 
     document.body.appendChild(modal);
 
-    const close = () => modal.remove();
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+    };
     modal.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
         btn.addEventListener('click', close);
     });
@@ -1313,7 +1356,11 @@ function startObserver() {
 function toggleSettingsModal() {
     let modal = document.getElementById(MODAL_ID);
     if (modal) {
-        modal.remove();
+        if ((modal as any)._close) {
+            (modal as any)._close();
+        } else {
+            modal.remove();
+        }
     } else {
         createSettingsModal();
     }
@@ -1386,6 +1433,17 @@ function createSettingsModal() {
 
     document.body.appendChild(modal);
 
+    const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        modal.remove();
+    };
+    (modal as any)._close = close;
+
     // Auto-focus input
     setTimeout(() => {
         const input = modal.querySelector('#modal-new-label') as HTMLInputElement;
@@ -1395,7 +1453,7 @@ function createSettingsModal() {
     // Export/Import Listeners
     modal.querySelector('#export-btn')?.addEventListener('click', exportSettings);
     modal.querySelector('#import-btn')?.addEventListener('click', () => {
-        modal.remove(); // Close settings modal first
+        close(); // Close settings modal first
         showImportModal();
     });
 
@@ -1411,9 +1469,9 @@ function createSettingsModal() {
     }
 
     // Event Listeners
-    modal.querySelector('.close-btn')?.addEventListener('click', () => modal.remove());
+    modal.querySelector('.close-btn')?.addEventListener('click', () => close());
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
+        if (e.target === modal) close();
     });
 
     const addBtn = modal.querySelector('#modal-add-btn') as HTMLButtonElement;
