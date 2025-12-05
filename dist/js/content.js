@@ -7012,14 +7012,14 @@
                         return;
                       }
                       if (this._elements.length != 1) return;
-                      let activeDropdown = null;
+                      let activeDropdown2 = null;
                       let buttonMod = null;
                       const prop = kefir_cast_default()(kefir_esm, buttonDescriptor).toProperty().takeUntilBy(this._stopper);
                       prop.merge(this._stopper).onValue((buttonDescriptor2) => {
                         if (!buttonDescriptor2) {
-                          if (activeDropdown) {
-                            activeDropdown.close();
-                            activeDropdown = null;
+                          if (activeDropdown2) {
+                            activeDropdown2.close();
+                            activeDropdown2 = null;
                           }
                         }
                       });
@@ -7083,27 +7083,27 @@
                                 threadRowView: this._userView
                               };
                               if (buttonDescriptor2.hasDropdown) {
-                                if (activeDropdown) {
+                                if (activeDropdown2) {
                                   this._elements[0].classList.remove("inboxsdk__dropdown_active");
                                   this._elements[0].classList.remove("buL");
-                                  activeDropdown.close();
-                                  activeDropdown = null;
+                                  activeDropdown2.close();
+                                  activeDropdown2 = null;
                                   return;
                                 } else {
                                   this._elements[0].classList.add("inboxsdk__dropdown_active");
                                   this._elements[0].classList.add("buL");
-                                  appEvent.dropdown = activeDropdown = new dropdown_view.A(new gmail_dropdown_view.A(), buttonEl, null);
-                                  activeDropdown.setPlacementOptions({
+                                  appEvent.dropdown = activeDropdown2 = new dropdown_view.A(new gmail_dropdown_view.A(), buttonEl, null);
+                                  activeDropdown2.setPlacementOptions({
                                     position: "bottom",
                                     hAlign: "left",
                                     vAlign: "top"
                                   });
                                   const firstEl = this._elements[0];
-                                  activeDropdown.on("destroy", () => {
+                                  activeDropdown2.on("destroy", () => {
                                     setTimeout(() => {
                                       firstEl.classList.remove("inboxsdk__dropdown_active");
                                       firstEl.classList.remove("buL");
-                                      activeDropdown = null;
+                                      activeDropdown2 = null;
                                     }, 1);
                                   });
                                 }
@@ -55249,7 +55249,20 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
 
   // src/utils/storage.ts
   var DEFAULT_SETTINGS = {
-    tabs: [],
+    tabs: [
+      {
+        id: "default-inbox",
+        title: "Inbox",
+        type: "hash",
+        value: "#inbox"
+      },
+      {
+        id: "default-sent",
+        title: "Sent",
+        type: "hash",
+        value: "#sent"
+      }
+    ],
     theme: "system",
     showUnreadCount: true
   };
@@ -55642,6 +55655,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     return bar;
   }
   var dragSrcEl = null;
+  var isMoveMode = false;
+  var activeDropdown = null;
   function handleDragStart(e) {
     dragSrcEl = this;
     this.classList.add("dragging");
@@ -55649,6 +55664,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", this.dataset.index || "");
     }
+    document.addEventListener("dragover", handleSmartDragOver);
+    document.addEventListener("drop", handleSmartDrop);
   }
   function handleDragOver(e) {
     if (e.preventDefault) {
@@ -55706,15 +55723,113 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     document.querySelectorAll(".gmail-tab").forEach((item) => {
       item.classList.remove("drag-over", "dragging", "drop-before", "drop-after");
     });
+    document.removeEventListener("dragover", handleSmartDragOver);
+    document.removeEventListener("drop", handleSmartDrop);
+  }
+  function handleSmartDragOver(e) {
+    e.preventDefault();
+    if (!dragSrcEl) return;
+    const tabs = Array.from(document.querySelectorAll(".gmail-tab"));
+    if (tabs.length === 0) return;
+    const rows = [];
+    tabs.forEach((tab) => {
+      const rect = tab.getBoundingClientRect();
+      const row = rows.find((r) => Math.abs(r.top - rect.top) < 10);
+      if (row) {
+        row.tabs.push(tab);
+        row.bottom = Math.max(row.bottom, rect.bottom);
+      } else {
+        rows.push({ top: rect.top, bottom: rect.bottom, tabs: [tab] });
+      }
+    });
+    const clientY = e.clientY;
+    let targetRowIndex = -1;
+    if (clientY < rows[0].top) {
+      targetRowIndex = 0;
+    } else if (clientY > rows[rows.length - 1].bottom) {
+      targetRowIndex = rows.length - 1;
+    } else {
+      let minDist = Number.POSITIVE_INFINITY;
+      rows.forEach((row, index) => {
+        const rowCenter = row.top + (row.bottom - row.top) / 2;
+        const dist = Math.abs(clientY - rowCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          targetRowIndex = index;
+        }
+      });
+    }
+    if (targetRowIndex === -1) return;
+    const targetRow = rows[targetRowIndex];
+    const clientX = e.clientX;
+    let closestTab = {
+      element: targetRow.tabs[0],
+      dist: Number.POSITIVE_INFINITY,
+      offset: 0
+    };
+    targetRow.tabs.forEach((tab) => {
+      const rect = tab.getBoundingClientRect();
+      const tabCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(clientX - tabCenter);
+      const offset = clientX - tabCenter;
+      if (dist < closestTab.dist) {
+        closestTab = { element: tab, dist, offset };
+      }
+    });
+    tabs.forEach((t2) => t2.classList.remove("drop-before", "drop-after"));
+    if (closestTab.element && closestTab.element !== dragSrcEl) {
+      if (closestTab.offset < 0) {
+        closestTab.element.classList.add("drop-before");
+      } else {
+        closestTab.element.classList.add("drop-after");
+      }
+    }
+  }
+  function handleSmartDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const targetTab = document.querySelector(".gmail-tab.drop-before, .gmail-tab.drop-after");
+    if (targetTab && dragSrcEl && dragSrcEl !== targetTab) {
+      const dropPosition = targetTab.classList.contains("drop-before") ? "before" : "after";
+      const oldIndex = parseInt(dragSrcEl.dataset.index || "0");
+      let newIndex = parseInt(targetTab.dataset.index || "0");
+      if (dropPosition === "after") {
+        newIndex++;
+      }
+      document.querySelectorAll(".gmail-tab").forEach((item) => {
+        item.classList.remove("drag-over", "dragging", "drop-before", "drop-after");
+      });
+      document.removeEventListener("dragover", handleSmartDragOver);
+      document.removeEventListener("drop", handleSmartDrop);
+      if (currentSettings && currentUserEmail) {
+        const tabs = [...currentSettings.tabs];
+        const [movedTab] = tabs.splice(oldIndex, 1);
+        if (oldIndex < newIndex) {
+          newIndex--;
+        }
+        tabs.splice(newIndex, 0, movedTab);
+        currentSettings.tabs = tabs;
+        renderTabs();
+        updateTabOrder(currentUserEmail, tabs);
+      }
+    }
+    dragSrcEl = null;
   }
   function renderTabs() {
     const bar = document.getElementById(TABS_BAR_ID);
     if (!bar || !currentSettings) return;
     bar.innerHTML = "";
+    if (isMoveMode) {
+      bar.classList.add("move-mode");
+      document.addEventListener("keydown", handleMoveModeKeydown);
+    } else {
+      bar.classList.remove("move-mode");
+      document.removeEventListener("keydown", handleMoveModeKeydown);
+    }
     currentSettings.tabs.forEach((tab, index) => {
       const tabEl = document.createElement("div");
       tabEl.className = "gmail-tab";
-      tabEl.setAttribute("draggable", "true");
+      tabEl.setAttribute("draggable", isMoveMode ? "true" : "false");
       tabEl.dataset.index = index.toString();
       tabEl.dataset.value = tab.value;
       tabEl.dataset.type = tab.type;
@@ -55734,30 +55849,17 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         tabEl.appendChild(countSpan);
         updateUnreadCount(tab, tabEl);
       }
-      const actions = document.createElement("div");
-      actions.className = "tab-actions";
-      const editBtn = document.createElement("div");
-      editBtn.className = "tab-action-btn edit-btn";
-      editBtn.innerHTML = "\u22EE";
-      editBtn.title = "Edit Tab";
-      editBtn.addEventListener("click", (e) => {
+      const menuBtn = document.createElement("div");
+      menuBtn.className = "gmail-tab-menu-btn";
+      menuBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>';
+      menuBtn.title = "Tab Options";
+      menuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        showEditModal(tab);
+        toggleDropdown(e, tab, menuBtn);
       });
-      actions.appendChild(editBtn);
-      const deleteBtn = document.createElement("div");
-      deleteBtn.className = "tab-action-btn delete-btn";
-      deleteBtn.innerHTML = "\u2715";
-      deleteBtn.title = "Remove Tab";
-      deleteBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        console.log("Gmail Tabs: Delete button clicked for", tab.title);
-        showDeleteModal(tab);
-      });
-      actions.appendChild(deleteBtn);
-      tabEl.appendChild(actions);
+      tabEl.appendChild(menuBtn);
       tabEl.addEventListener("click", (e) => {
-        if (e.target.closest(".tab-actions") || e.target.closest(".tab-drag-handle")) {
+        if (e.target.closest(".gmail-tab-menu-btn") || e.target.closest(".tab-drag-handle") || isMoveMode) {
           return;
         }
         if (tab.type === "label") {
@@ -55794,7 +55896,92 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       toggleSettingsModal();
     });
     bar.appendChild(manageBtn);
+    if (isMoveMode) {
+      const doneBtn = document.createElement("button");
+      doneBtn.className = "done-btn";
+      doneBtn.innerText = "Done";
+      doneBtn.addEventListener("click", () => {
+        isMoveMode = false;
+        renderTabs();
+        document.removeEventListener("keydown", handleMoveModeKeydown);
+      });
+      bar.appendChild(doneBtn);
+    }
     updateActiveTab();
+  }
+  function handleMoveModeKeydown(e) {
+    if (e.key === "Escape") {
+      isMoveMode = false;
+      renderTabs();
+      document.removeEventListener("keydown", handleMoveModeKeydown);
+    }
+  }
+  function toggleDropdown(e, tab, triggerBtn) {
+    if (activeDropdown) {
+      activeDropdown.remove();
+      activeDropdown = null;
+      if (triggerBtn.classList.contains("active")) {
+        triggerBtn.classList.remove("active");
+        return;
+      }
+      document.querySelectorAll(".gmail-tab-menu-btn").forEach((b) => b.classList.remove("active"));
+    }
+    triggerBtn.classList.add("active");
+    const rect = triggerBtn.getBoundingClientRect();
+    const dropdown = document.createElement("div");
+    dropdown.className = "gmail-tab-dropdown show";
+    const tabEl = triggerBtn.closest(".gmail-tab");
+    if (tabEl) {
+      const tabRect = tabEl.getBoundingClientRect();
+      dropdown.style.top = `${tabRect.bottom + 4}px`;
+      dropdown.style.left = `${tabRect.left}px`;
+    } else {
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.left = `${rect.left}px`;
+    }
+    const closeItem = document.createElement("div");
+    closeItem.className = "gmail-tab-dropdown-item delete-item";
+    closeItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> Close Tab';
+    closeItem.addEventListener("click", () => {
+      showDeleteModal(tab);
+      closeDropdown();
+    });
+    dropdown.appendChild(closeItem);
+    const editItem = document.createElement("div");
+    editItem.className = "gmail-tab-dropdown-item";
+    editItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Tab';
+    editItem.addEventListener("click", () => {
+      showEditModal(tab);
+      closeDropdown();
+    });
+    dropdown.appendChild(editItem);
+    const moveItem = document.createElement("div");
+    moveItem.className = "gmail-tab-dropdown-item";
+    moveItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg> Move Tab';
+    moveItem.addEventListener("click", () => {
+      isMoveMode = true;
+      renderTabs();
+      closeDropdown();
+    });
+    dropdown.appendChild(moveItem);
+    document.body.appendChild(dropdown);
+    activeDropdown = dropdown;
+    setTimeout(() => {
+      document.addEventListener("click", closeDropdownOutside);
+    }, 0);
+  }
+  function closeDropdown() {
+    if (activeDropdown) {
+      activeDropdown.remove();
+      activeDropdown = null;
+    }
+    document.querySelectorAll(".gmail-tab-menu-btn").forEach((b) => b.classList.remove("active"));
+    document.removeEventListener("click", closeDropdownOutside);
+  }
+  function closeDropdownOutside(e) {
+    if (activeDropdown && !activeDropdown.contains(e.target)) {
+      closeDropdown();
+    }
   }
   function showPinModal() {
     const currentHash = window.location.hash;
@@ -55834,7 +56021,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
     `;
     document.body.appendChild(modal);
-    const close = () => modal.remove();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const close = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      modal.remove();
+    };
     modal.querySelector(".close-btn")?.addEventListener("click", close);
     modal.addEventListener("click", (e) => {
       if (e.target === modal) close();
@@ -55874,7 +56068,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
     `;
     document.body.appendChild(modal);
-    const close = () => modal.remove();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const close = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      modal.remove();
+    };
     modal.querySelector(".close-btn")?.addEventListener("click", close);
     modal.addEventListener("click", (e) => {
       if (e.target === modal) close();
@@ -55912,7 +56113,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
     `;
     document.body.appendChild(modal);
-    const close = () => modal.remove();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const close = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      modal.remove();
+    };
     modal.querySelectorAll(".close-btn-action").forEach((btn) => {
       btn.addEventListener("click", close);
     });
@@ -56004,7 +56212,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
     `;
     document.body.appendChild(modal);
-    const close = () => modal.remove();
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const close = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      modal.remove();
+    };
     modal.querySelectorAll(".close-btn, .close-btn-action").forEach((btn) => {
       btn.addEventListener("click", close);
     });
@@ -56097,7 +56312,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
   function toggleSettingsModal() {
     let modal = document.getElementById(MODAL_ID);
     if (modal) {
-      modal.remove();
+      if (modal._close) {
+        modal._close();
+      } else {
+        modal.remove();
+      }
     } else {
       createSettingsModal();
     }
@@ -56166,13 +56385,22 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
     `;
     document.body.appendChild(modal);
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const close = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      modal.remove();
+    };
+    modal._close = close;
     setTimeout(() => {
       const input2 = modal.querySelector("#modal-new-label");
       if (input2) input2.focus();
     }, 100);
     modal.querySelector("#export-btn")?.addEventListener("click", exportSettings);
     modal.querySelector("#import-btn")?.addEventListener("click", () => {
-      modal.remove();
+      close();
       showImportModal();
     });
     modal.querySelector("#modal-help-btn")?.addEventListener("click", () => {
@@ -56182,9 +56410,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     if (emailSpan && currentUserEmail) {
       emailSpan.textContent = currentUserEmail;
     }
-    modal.querySelector(".close-btn")?.addEventListener("click", () => modal.remove());
+    modal.querySelector(".close-btn")?.addEventListener("click", () => close());
     modal.addEventListener("click", (e) => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) close();
     });
     const addBtn = modal.querySelector("#modal-add-btn");
     const input = modal.querySelector("#modal-new-label");
@@ -56439,9 +56667,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     let labelForFeed = "";
     if (tab.type === "label") {
       labelForFeed = tab.value;
+      if (labelForFeed.toLowerCase() === "inbox") {
+        labelForFeed = "";
+      }
     } else if (tab.type === "hash") {
       if (tab.value === "#inbox") {
         labelForFeed = "";
+      } else if (tab.value === "#sent") {
+        labelForFeed = "^f";
       } else if (tab.value.startsWith("#label/")) {
         labelForFeed = tab.value.replace("#label/", "");
       }
@@ -56461,9 +56694,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             if (count > 0) {
               countSpan.textContent = count.toString();
               return;
-            } else {
-              countSpan.textContent = "";
-              return;
             }
           }
         }
@@ -56479,15 +56709,42 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     }
   }
   function getUnreadCountFromDOM(tab) {
-    if (tab.type === "hash" && !tab.value.startsWith("#label/")) {
-      if (tab.value === "#inbox") {
-        const link2 = document.querySelector('a[href$="#inbox"]');
-        if (link2) {
-          const ariaLabel = link2.getAttribute("aria-label");
-          if (ariaLabel) {
-            const match = ariaLabel.match(/(\d+)\s+unread/);
-            return match ? match[1] : "";
+    const isInbox = tab.type === "hash" && tab.value === "#inbox" || tab.type === "label" && tab.value.toLowerCase() === "inbox";
+    const isSent = tab.type === "hash" && tab.value === "#sent" || tab.type === "label" && tab.value.toLowerCase() === "sent";
+    if (isInbox || isSent) {
+      const nav = document.querySelector('[role="navigation"]') || document.querySelector(".wT");
+      if (!nav) return "";
+      const links = nav.querySelectorAll("a");
+      for (const link2 of links) {
+        const ariaLabel = link2.getAttribute("aria-label") || "";
+        const title = link2.getAttribute("title") || "";
+        const text = link2.textContent || "";
+        let isMatch = false;
+        if (isInbox) {
+          if (link2.getAttribute("href")?.endsWith("#inbox")) {
+            isMatch = true;
+          } else {
+            isMatch = ariaLabel.startsWith("Inbox") || title.startsWith("Inbox");
           }
+        } else if (isSent) {
+          isMatch = ariaLabel.startsWith("Sent") || title.startsWith("Sent") || text.includes("Sent") && link2.getAttribute("href")?.endsWith("#sent");
+        }
+        if (isMatch) {
+          const bsU = link2.querySelector(".bsU");
+          if (bsU && bsU.textContent) return bsU.textContent;
+          if (ariaLabel) {
+            const unreadMatch = ariaLabel.match(/(\d+)\s+unread/i);
+            if (unreadMatch) return unreadMatch[1];
+            const parenMatch = ariaLabel.match(/\((\d+)\)/);
+            if (parenMatch) return parenMatch[1];
+          }
+          if (title) {
+            const match = title.match(/\((\d+)\)/);
+            if (match) return match[1];
+          }
+          const rawText = link2.innerText || "";
+          const textMatch = rawText.match(/(\d+)$/m);
+          if (textMatch) return textMatch[1];
         }
       }
       return "";

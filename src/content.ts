@@ -1810,9 +1810,16 @@ async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
     // Determine Label for Feed
     if (tab.type === 'label') {
         labelForFeed = tab.value;
+        // Fix: If user adds "Inbox" as a label, map it to system inbox feed
+        if (labelForFeed.toLowerCase() === 'inbox') {
+            labelForFeed = '';
+        }
     } else if (tab.type === 'hash') {
         if (tab.value === '#inbox') {
             labelForFeed = ''; // Empty for Inbox
+        } else if (tab.value === '#sent') {
+            // Try internal ID '^f' for Sent in Atom feed
+            labelForFeed = '^f';
         } else if (tab.value.startsWith('#label/')) {
             labelForFeed = tab.value.replace('#label/', '');
         }
@@ -1837,11 +1844,9 @@ async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
                     if (count > 0) {
                         countSpan.textContent = count.toString();
                         return; // Success
-                    } else {
-                        // Count is 0, hide or empty
-                        countSpan.textContent = '';
-                        return;
                     }
+                    // If count is 0, don't return yet. Fallback to DOM might find something 
+                    // (e.g. if feed is stale or behaves differently than UI).
                 }
             }
         } catch (e) {
@@ -1862,16 +1867,67 @@ async function updateUnreadCount(tab: Tab, tabEl: HTMLElement): Promise<void> {
  * Legacy DOM Scraping (Fallback)
  */
 function getUnreadCountFromDOM(tab: Tab): string {
-    if (tab.type === 'hash' && !tab.value.startsWith('#label/')) {
-        // Special case: Inbox
-        if (tab.value === '#inbox') {
-            const link = document.querySelector('a[href$="#inbox"]');
-            if (link) {
-                const ariaLabel = link.getAttribute('aria-label');
-                if (ariaLabel) {
-                    const match = ariaLabel.match(/(\d+)\s+unread/);
-                    return match ? match[1] : '';
+    // Normalize check: Is this effectively the Inbox?
+    const isInbox = (tab.type === 'hash' && tab.value === '#inbox') ||
+        (tab.type === 'label' && tab.value.toLowerCase() === 'inbox');
+
+    const isSent = (tab.type === 'hash' && tab.value === '#sent') ||
+        (tab.type === 'label' && tab.value.toLowerCase() === 'sent');
+
+    if (isInbox || isSent) {
+        // Aggressive search in navigation sidebar
+        // Common containers for Gmail sidebar: .wT, [role="navigation"]
+        const nav = document.querySelector('[role="navigation"]') || document.querySelector('.wT');
+        if (!nav) return '';
+
+        const links = nav.querySelectorAll('a');
+        for (const link of links) {
+            const ariaLabel = link.getAttribute('aria-label') || '';
+            const title = link.getAttribute('title') || '';
+            const text = link.textContent || '';
+
+            // Identify if this link is the target
+            let isMatch = false;
+            if (isInbox) {
+                // Strongest signal for Inbox is the href
+                if (link.getAttribute('href')?.endsWith('#inbox')) {
+                    isMatch = true;
+                } else {
+                    // Fallback to text/title if href is weird (unlikely for standard Inbox)
+                    isMatch = ariaLabel.startsWith('Inbox') || title.startsWith('Inbox');
                 }
+            } else if (isSent) {
+                isMatch =
+                    ariaLabel.startsWith('Sent') ||
+                    title.startsWith('Sent') ||
+                    (text.includes('Sent') && link.getAttribute('href')?.endsWith('#sent'));
+            }
+
+            if (isMatch) {
+                // 1. Check for .bsU badge (standard unread count element)
+                const bsU = link.querySelector('.bsU');
+                if (bsU && bsU.textContent) return bsU.textContent;
+
+                // 2. Parse Aria Label
+                if (ariaLabel) {
+                    const unreadMatch = ariaLabel.match(/(\d+)\s+unread/i);
+                    if (unreadMatch) return unreadMatch[1];
+                    const parenMatch = ariaLabel.match(/\((\d+)\)/);
+                    if (parenMatch) return parenMatch[1];
+                }
+
+                // 3. Parse Title
+                if (title) {
+                    const match = title.match(/\((\d+)\)/);
+                    if (match) return match[1];
+                }
+
+                // 4. Parse Text Content (Last Resort)
+                // "Inbox\n3" or "Inbox 3"
+                // We look for a standalone number at the end or on a new line
+                const rawText = link.innerText || '';
+                const textMatch = rawText.match(/(\d+)$/m); // Number at end of line/string
+                if (textMatch) return textMatch[1];
             }
         }
         return '';
@@ -1935,6 +1991,9 @@ function getUnreadCountFromDOM(tab: Tab): string {
 
     return '';
 }
+
+
+
 
 // Run init
 if (document.readyState === 'loading') {

@@ -3,7 +3,7 @@
 ## UI/UX Improvements
 1. **Fixed Width Buttons**: 
    - The current expanding buttons (showing edit/close/move on hover) cause Cumulative Layout Shift (CLS).
-   - **Proposal**: Switch to fixed-width buttons with a dropdown arrow for actions to improve stability and user experience.
+   - **Proposal**: Switch to fixed-width buttons with a dropdown arrow for actions to improve stability and user experience.     
 
 2. **Show Unread Count in the default Inbox & Sent labels too**:
    - Add unread count to Inbox & Sent labels too.

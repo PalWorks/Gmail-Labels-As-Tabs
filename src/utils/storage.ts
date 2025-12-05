@@ -29,7 +29,20 @@ export interface Settings {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-    tabs: [],
+    tabs: [
+        {
+            id: 'default-inbox',
+            title: 'Inbox',
+            type: 'hash',
+            value: '#inbox'
+        },
+        {
+            id: 'default-sent',
+            title: 'Sent',
+            type: 'hash',
+            value: '#sent'
+        }
+    ],
     theme: 'system',
     showUnreadCount: true
 };
