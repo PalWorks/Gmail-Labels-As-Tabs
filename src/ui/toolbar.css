@@ -171,16 +171,21 @@ body.force-light {
     height: 32px;
     padding: 0 16px;
     /* margin-right: 8px; Removed in favor of gap */
-    border-radius: 16px;
+    border-radius: 8px;
+    /* Chamfered rectangle */
     font-size: 14px;
     font-weight: 500;
     color: var(--gmail-tab-text);
     cursor: pointer;
     text-decoration: none;
     transition: background-color 0.2s;
-    border: 1px solid transparent;
+    border: 1px solid #dadce0;
+    /* Visible border */
     position: relative;
     padding-right: 8px;
+    /* Removed max-width to allow full text expansion */
+    white-space: nowrap;
+    /* Prevent text wrapping */
 }
 
 .gmail-tab:hover {
@@ -206,6 +211,7 @@ body.force-light {
     /* margin-left: 8px; Removed in favor of gap */
     transition: background-color 0.2s;
     font-size: 20px;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -323,22 +329,8 @@ body.force-light {
     color: var(--remove-btn-hover);
 }
 
-/* Tab Hover Actions */
-.tab-name {
-    margin-right: 4px;
-}
-
-.tab-actions {
-    display: none;
-    align-items: center;
-    margin-left: 4px;
-}
-
-.gmail-tab:hover .tab-actions {
-    display: flex;
-}
-
-.tab-action-btn {
+/* Tab Menu Button (Chevron) */
+.gmail-tab-menu-btn {
     width: 20px;
     height: 20px;
     display: flex;
@@ -348,16 +340,133 @@ body.force-light {
     cursor: pointer;
     font-size: 12px;
     color: var(--gmail-tab-text);
-    margin-left: 2px;
+    margin-left: 4px;
+    opacity: 1;
+    /* Always visible */
+    transition: background-color 0.2s;
 }
 
-.tab-action-btn:hover {
+/* Removed hover dependency for opacity */
+
+.gmail-tab-menu-btn:hover {
     background-color: var(--gmail-tab-hover-bg);
     color: var(--gmail-tab-hover-text);
 }
 
-.edit-btn {
-    font-weight: bold;
+.gmail-tab-menu-btn.active {
+    opacity: 1;
+    background-color: var(--gmail-tab-active-bg);
+    color: var(--gmail-tab-active-text);
+}
+
+/* Dropdown Menu */
+.gmail-tab-dropdown {
+    position: absolute;
+    background: var(--modal-bg);
+    border: 1px solid var(--list-border);
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    min-width: 120px;
+    padding: 4px 0;
+    display: none;
+    /* Toggled via JS */
+}
+
+.gmail-tab-dropdown.show {
+    display: block;
+}
+
+.gmail-tab-dropdown-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--modal-text);
+    transition: background-color 0.2s;
+}
+
+.gmail-tab-dropdown-item:hover {
+    background-color: var(--gmail-tab-hover-bg);
+}
+
+.gmail-tab-dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    opacity: 0.7;
+}
+
+.gmail-tab-dropdown-item.delete-item:hover {
+    background-color: rgba(217, 48, 37, 0.1);
+    color: #d93025;
+}
+
+/* Move Mode Styles */
+.gmail-tabs-bar.move-mode .gmail-tab {
+    border: 1px dashed var(--primary-btn-bg);
+    padding-left: 6px;
+    /* Reduced padding for drag handle */
+    padding-right: 8px;
+    transition: all 0.2s ease;
+    /* Smooth transition */
+}
+
+.tab-drag-handle {
+    display: none !important;
+    /* Force hidden by default */
+    margin-right: 4px;
+    cursor: grab;
+    color: var(--gmail-tab-text);
+    opacity: 0.5;
+}
+
+.gmail-tabs-bar.move-mode .tab-drag-handle {
+    display: flex !important;
+    /* Only show in move mode */
+}
+
+.gmail-tabs-bar.move-mode .gmail-tab-menu-btn {
+    display: none;
+    /* Hide menu in move mode */
+}
+
+/* Drop Indicators */
+.gmail-tab.drop-before {
+    border-left: 2px solid var(--primary-btn-bg) !important;
+    background-color: rgba(26, 115, 232, 0.05);
+    transform: translateX(2px);
+}
+
+.gmail-tab.drop-after {
+    border-right: 2px solid var(--primary-btn-bg) !important;
+    background-color: rgba(26, 115, 232, 0.05);
+    transform: translateX(-2px);
+}
+
+.gmail-tab.dragging {
+    opacity: 0.4;
+    border: 1px dashed var(--gmail-tab-text);
+}
+
+/* Done Button */
+.done-btn {
+    background-color: var(--primary-btn-bg);
+    color: var(--primary-btn-text);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    margin-left: auto;
+    /* Push to right */
+}
+
+.done-btn:hover {
+    background-color: var(--primary-btn-hover-bg);
 }
 
 /* Edit Modal */

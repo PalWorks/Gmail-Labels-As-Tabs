@@ -402,7 +402,11 @@ function createTabsBar(): HTMLElement {
  */
 
 // --- Drag Handlers ---
+// --- Drag Handlers ---
 let dragSrcEl: HTMLElement | null = null;
+let isMoveMode = false; // State for Move Mode
+let activeDropdown: HTMLElement | null = null; // Track active dropdown
+
 
 function handleDragStart(this: HTMLElement, e: DragEvent) {
     dragSrcEl = this;
@@ -410,8 +414,10 @@ function handleDragStart(this: HTMLElement, e: DragEvent) {
     if (e.dataTransfer) {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dataset.index || '');
-        // Set a transparent drag image if possible, or let browser handle it
     }
+    // Add global listener for smart vertical mapping
+    document.addEventListener('dragover', handleSmartDragOver);
+    document.addEventListener('drop', handleSmartDrop);
 }
 
 function handleDragOver(this: HTMLElement, e: DragEvent) {
@@ -495,6 +501,220 @@ function handleDragEnd(this: HTMLElement, e: DragEvent) {
     document.querySelectorAll('.gmail-tab').forEach(item => {
         item.classList.remove('drag-over', 'dragging', 'drop-before', 'drop-after');
     });
+    // Remove global listeners
+    document.removeEventListener('dragover', handleSmartDragOver);
+    document.removeEventListener('drop', handleSmartDrop);
+}
+
+// Smart Global Handlers
+function handleSmartDragOver(e: DragEvent) {
+    e.preventDefault(); // Allow dropping
+    if (!dragSrcEl) return;
+
+    const tabs = Array.from(document.querySelectorAll('.gmail-tab')) as HTMLElement[];
+    if (tabs.length === 0) return;
+
+    // 1. Group tabs by rows
+    const rows: { top: number; bottom: number; tabs: HTMLElement[] }[] = [];
+
+    // Sort tabs by DOM order (should be visual order too)
+    // We assume standard flow layout
+
+    tabs.forEach(tab => {
+        const rect = tab.getBoundingClientRect();
+        // Check if this tab belongs to an existing row (with some tolerance)
+        const row = rows.find(r => Math.abs(r.top - rect.top) < 10);
+        if (row) {
+            row.tabs.push(tab);
+            row.bottom = Math.max(row.bottom, rect.bottom);
+        } else {
+            rows.push({ top: rect.top, bottom: rect.bottom, tabs: [tab] });
+        }
+    });
+
+    // 2. Determine Target Row based on Y position
+    const clientY = e.clientY;
+    let targetRowIndex = -1;
+
+    if (clientY < rows[0].top) {
+        // Above first row -> Target first row
+        targetRowIndex = 0;
+    } else if (clientY > rows[rows.length - 1].bottom) {
+        // Below last row -> Target last row
+        targetRowIndex = rows.length - 1;
+    } else {
+        // In between -> Find closest row vertically
+        let minDist = Number.POSITIVE_INFINITY;
+        rows.forEach((row, index) => {
+            const rowCenter = row.top + (row.bottom - row.top) / 2;
+            const dist = Math.abs(clientY - rowCenter);
+            if (dist < minDist) {
+                minDist = dist;
+                targetRowIndex = index;
+            }
+        });
+    }
+
+    if (targetRowIndex === -1) return; // Should not happen
+
+    const targetRow = rows[targetRowIndex];
+
+    // 3. Determine Target Tab in Row based on X position
+    const clientX = e.clientX;
+    let closestTab: { element: HTMLElement; dist: number; offset: number } = {
+        element: targetRow.tabs[0],
+        dist: Number.POSITIVE_INFINITY,
+        offset: 0
+    };
+
+    targetRow.tabs.forEach(tab => {
+        const rect = tab.getBoundingClientRect();
+        const tabCenter = rect.left + rect.width / 2;
+        const dist = Math.abs(clientX - tabCenter);
+        const offset = clientX - tabCenter; // Negative if left of center, positive if right
+
+        if (dist < closestTab.dist) {
+            closestTab = { element: tab, dist, offset };
+        }
+    });
+
+    // Clear all indicators
+    tabs.forEach(t => t.classList.remove('drop-before', 'drop-after'));
+
+    // Apply indicator to closest tab
+    if (closestTab.element && closestTab.element !== dragSrcEl) {
+        if (closestTab.offset < 0) {
+            closestTab.element.classList.add('drop-before');
+        } else {
+            closestTab.element.classList.add('drop-after');
+        }
+    }
+}
+
+function handleSmartDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const targetTab = document.querySelector('.gmail-tab.drop-before, .gmail-tab.drop-after') as HTMLElement;
+
+    if (targetTab && dragSrcEl && dragSrcEl !== targetTab) {
+        const dropPosition = targetTab.classList.contains('drop-before') ? 'before' : 'after';
+        const oldIndex = parseInt(dragSrcEl.dataset.index || '0');
+        let newIndex = parseInt(targetTab.dataset.index || '0');
+
+        if (dropPosition === 'after') {
+            newIndex++;
+        }
+
+        // Cleanup
+        document.querySelectorAll('.gmail-tab').forEach(item => {
+            item.classList.remove('drag-over', 'dragging', 'drop-before', 'drop-after');
+        });
+        document.removeEventListener('dragover', handleSmartDragOver);
+        document.removeEventListener('drop', handleSmartDrop);
+
+        if (currentSettings && currentUserEmail) {
+            const tabs = [...currentSettings.tabs];
+            const [movedTab] = tabs.splice(oldIndex, 1);
+
+            if (oldIndex < newIndex) {
+                newIndex--;
+            }
+
+            tabs.splice(newIndex, 0, movedTab);
+
+            currentSettings.tabs = tabs;
+            renderTabs();
+            updateTabOrder(currentUserEmail, tabs);
+        }
+    }
+    dragSrcEl = null;
+}
+
+// Global handlers for "Vertical Forgiveness"
+function handleGlobalDragOver(e: DragEvent) {
+    e.preventDefault(); // Necessary to allow dropping
+    if (!dragSrcEl) return;
+
+    const tabs = Array.from(document.querySelectorAll('.gmail-tab')) as HTMLElement[];
+    const clientX = e.clientX;
+
+    // Find the tab we are horizontally hovering over
+    // We only care about X position, ignoring Y (vertical forgiveness)
+    let targetTab: HTMLElement | null = null;
+
+    // Optimization: Check if we are inside the tabs bar container first? 
+    // No, user wants to be able to drag *outside* and still have it work.
+
+    for (const tab of tabs) {
+        const rect = tab.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right) {
+            targetTab = tab;
+            break;
+        }
+    }
+
+    // Clear all existing indicators first
+    tabs.forEach(t => t.classList.remove('drop-before', 'drop-after'));
+
+    if (targetTab && targetTab !== dragSrcEl) {
+        const rect = targetTab.getBoundingClientRect();
+        const width = rect.width;
+        const relX = clientX - rect.left;
+
+        if (relX < width / 2) {
+            targetTab.classList.add('drop-before');
+        } else {
+            targetTab.classList.add('drop-after');
+        }
+    }
+}
+
+function handleGlobalDrop(e: DragEvent) {
+    // This handles drops that happen *outside* the tab elements but still within the document
+    // We need to find the "active" target based on our visual indicators
+    const targetTab = document.querySelector('.gmail-tab.drop-before, .gmail-tab.drop-after') as HTMLElement;
+
+    if (targetTab) {
+        // Delegate to the standard handleDrop logic by calling it with the targetTab as 'this'
+        // We need to mock the event or just extract the logic. 
+        // Simpler: Just trigger the logic directly.
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dropPosition = targetTab.classList.contains('drop-before') ? 'before' : 'after';
+
+        // Cleanup
+        document.querySelectorAll('.gmail-tab').forEach(item => {
+            item.classList.remove('drag-over', 'dragging', 'drop-before', 'drop-after');
+        });
+
+        if (dragSrcEl && dragSrcEl !== targetTab) {
+            const oldIndex = parseInt(dragSrcEl.dataset.index || '0');
+            let newIndex = parseInt(targetTab.dataset.index || '0');
+
+            if (dropPosition === 'after') {
+                newIndex++;
+            }
+
+            if (currentSettings && currentUserEmail) {
+                const tabs = [...currentSettings.tabs];
+                const [movedTab] = tabs.splice(oldIndex, 1);
+
+                if (oldIndex < newIndex) {
+                    newIndex--;
+                }
+
+                tabs.splice(newIndex, 0, movedTab);
+
+                currentSettings.tabs = tabs;
+                renderTabs();
+                updateTabOrder(currentUserEmail, tabs);
+            }
+        }
+        dragSrcEl = null;
+    }
 }
 
 function renderTabs() {
@@ -502,15 +722,26 @@ function renderTabs() {
     if (!bar || !currentSettings) return;
     bar.innerHTML = '';
 
+    // Add class for move mode styling
+    if (isMoveMode) {
+        bar.classList.add('move-mode');
+        // We now use global handlers attached in handleDragStart
+        // But we can keep container handlers as fallback or just rely on global?
+        // Relying on global is cleaner for the "outside" requirement.
+        // So we DON'T attach container handlers here anymore.
+    } else {
+        bar.classList.remove('move-mode');
+    }
+
     currentSettings.tabs.forEach((tab, index) => {
         const tabEl = document.createElement('div');
         tabEl.className = 'gmail-tab';
-        tabEl.setAttribute('draggable', 'true');
+        tabEl.setAttribute('draggable', isMoveMode ? 'true' : 'false'); // Only draggable in move mode
         tabEl.dataset.index = index.toString();
         tabEl.dataset.value = tab.value;
         tabEl.dataset.type = tab.type;
 
-        // Drag Handle
+        // Drag Handle (Always present in DOM, visibility controlled by CSS/JS state)
         const dragHandle = document.createElement('div');
         dragHandle.className = 'tab-drag-handle';
         dragHandle.title = 'Drag to reorder';
@@ -534,34 +765,22 @@ function renderTabs() {
             updateUnreadCount(tab, tabEl);
         }
 
-        const actions = document.createElement('div');
-        actions.className = 'tab-actions';
-
-        const editBtn = document.createElement('div');
-        editBtn.className = 'tab-action-btn edit-btn';
-        editBtn.innerHTML = '⋮';
-        editBtn.title = 'Edit Tab';
-        editBtn.addEventListener('click', (e) => {
+        // Menu Button (Chevron) - Hidden in Move Mode via CSS
+        const menuBtn = document.createElement('div');
+        menuBtn.className = 'gmail-tab-menu-btn';
+        menuBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>'; // Chevron Down
+        menuBtn.title = 'Tab Options';
+        menuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            showEditModal(tab);
+            toggleDropdown(e, tab, menuBtn);
         });
-        actions.appendChild(editBtn);
-
-        const deleteBtn = document.createElement('div');
-        deleteBtn.className = 'tab-action-btn delete-btn';
-        deleteBtn.innerHTML = '✕';
-        deleteBtn.title = 'Remove Tab';
-        deleteBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            console.log('Gmail Tabs: Delete button clicked for', tab.title);
-            showDeleteModal(tab);
-        });
-        actions.appendChild(deleteBtn);
-        tabEl.appendChild(actions);
+        tabEl.appendChild(menuBtn);
 
         tabEl.addEventListener('click', (e) => {
             // Don't navigate if clicking actions or drag handle
-            if ((e.target as HTMLElement).closest('.tab-actions') || (e.target as HTMLElement).closest('.tab-drag-handle')) {
+            if ((e.target as HTMLElement).closest('.gmail-tab-menu-btn') ||
+                (e.target as HTMLElement).closest('.tab-drag-handle') ||
+                isMoveMode) { // Disable navigation in move mode
                 return;
             }
 
@@ -583,12 +802,12 @@ function renderTabs() {
             updateActiveTab();
         });
 
-        // Drag Events
-        tabEl.addEventListener('dragstart', handleDragStart); // Added missing dragstart
-        tabEl.addEventListener('dragenter', handleDragEnter); // Added missing dragenter
-        tabEl.addEventListener('dragover', handleDragOver);   // Added missing dragover
-        tabEl.addEventListener('dragleave', handleDragLeave); // Added missing dragleave
-        tabEl.addEventListener('drop', handleDrop);           // Added missing drop
+        // Drag Events (Only active if draggable is true)
+        tabEl.addEventListener('dragstart', handleDragStart);
+        tabEl.addEventListener('dragenter', handleDragEnter);
+        tabEl.addEventListener('dragover', handleDragOver);
+        tabEl.addEventListener('dragleave', handleDragLeave);
+        tabEl.addEventListener('drop', handleDrop);
         tabEl.addEventListener('dragend', handleDragEnd);
 
         bar.appendChild(tabEl);
@@ -618,7 +837,108 @@ function renderTabs() {
     });
     bar.appendChild(manageBtn);
 
+    // Done Button (Visible only in Move Mode)
+    if (isMoveMode) {
+        const doneBtn = document.createElement('button');
+        doneBtn.className = 'done-btn';
+        doneBtn.textContent = 'Done';
+        doneBtn.addEventListener('click', () => {
+            isMoveMode = false;
+            renderTabs();
+        });
+        bar.appendChild(doneBtn);
+    }
+
     updateActiveTab();
+}
+
+// --- Dropdown Logic ---
+function toggleDropdown(e: MouseEvent, tab: Tab, triggerBtn: HTMLElement) {
+    // Close existing
+    if (activeDropdown) {
+        activeDropdown.remove();
+        activeDropdown = null;
+        // If clicking the same button, just close
+        if (triggerBtn.classList.contains('active')) {
+            triggerBtn.classList.remove('active');
+            return;
+        }
+        // Remove active state from all buttons
+        document.querySelectorAll('.gmail-tab-menu-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    triggerBtn.classList.add('active');
+
+    const rect = triggerBtn.getBoundingClientRect();
+    const dropdown = document.createElement('div');
+    dropdown.className = 'gmail-tab-dropdown show';
+
+    // Position: Below the TAB (not just the button), aligned left with the tab
+    // We need the tab element's rect, which is the parent of the button
+    const tabEl = triggerBtn.closest('.gmail-tab');
+    if (tabEl) {
+        const tabRect = tabEl.getBoundingClientRect();
+        dropdown.style.top = `${tabRect.bottom + 4}px`;
+        dropdown.style.left = `${tabRect.left}px`;
+    } else {
+        // Fallback
+        dropdown.style.top = `${rect.bottom + 4}px`;
+        dropdown.style.left = `${rect.left}px`;
+    }
+
+    // 1. Close Tab
+    const closeItem = document.createElement('div');
+    closeItem.className = 'gmail-tab-dropdown-item delete-item';
+    closeItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> Close Tab';
+    closeItem.addEventListener('click', () => {
+        showDeleteModal(tab);
+        closeDropdown();
+    });
+    dropdown.appendChild(closeItem);
+
+    // 2. Edit Tab
+    const editItem = document.createElement('div');
+    editItem.className = 'gmail-tab-dropdown-item';
+    editItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Tab';
+    editItem.addEventListener('click', () => {
+        showEditModal(tab);
+        closeDropdown();
+    });
+    dropdown.appendChild(editItem);
+
+    // 3. Move Tab
+    const moveItem = document.createElement('div');
+    moveItem.className = 'gmail-tab-dropdown-item';
+    moveItem.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg> Move Tab';
+    moveItem.addEventListener('click', () => {
+        isMoveMode = true;
+        renderTabs();
+        closeDropdown();
+    });
+    dropdown.appendChild(moveItem);
+
+    document.body.appendChild(dropdown);
+    activeDropdown = dropdown;
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', closeDropdownOutside);
+    }, 0);
+}
+
+function closeDropdown() {
+    if (activeDropdown) {
+        activeDropdown.remove();
+        activeDropdown = null;
+    }
+    document.querySelectorAll('.gmail-tab-menu-btn').forEach(b => b.classList.remove('active'));
+    document.removeEventListener('click', closeDropdownOutside);
+}
+
+function closeDropdownOutside(e: MouseEvent) {
+    if (activeDropdown && !activeDropdown.contains(e.target as Node)) {
+        closeDropdown();
+    }
 }
 
 // --- Pin Modal ---
