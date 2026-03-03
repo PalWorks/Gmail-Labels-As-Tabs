@@ -6,13 +6,14 @@ import { Home } from './pages/Home';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { Changelog } from './pages/Changelog';
-import { Contact } from './pages/Contact';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (pathname !== '/contact') {
+      window.scrollTo(0, 0);
+    }
   }, [pathname]);
 
   return null;
@@ -40,7 +41,7 @@ const App: React.FC = () => {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/changelog" element={<Changelog />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route path="/contact" element={<Home />} />
         </Routes>
       </Layout>
     </HashRouter>

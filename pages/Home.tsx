@@ -188,8 +188,9 @@ export const Home: React.FC = () => {
 
   useEffect(() => {
     // Handle hash scrolling on initial load or route change
-    if (location.hash) {
-      const element = document.getElementById(location.hash.replace('#', ''));
+    const targetId = location.pathname === '/contact' ? 'contact' : location.hash ? location.hash.replace('#', '') : null;
+    if (targetId) {
+      const element = document.getElementById(targetId);
       if (element) {
         setTimeout(() => {
           element.scrollIntoView({ behavior: 'smooth' });
