@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://palworks.github.io/Gmail-Labels-As-Tabs/sitemap.xml
