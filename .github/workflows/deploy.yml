@@ -1,8 +1,20 @@
 name: Deploy to GitHub Pages
 
+# Manual trigger only. Actions minutes are spent deliberately, never on every
+# push. Run from the Actions tab ("Deploy to GitHub Pages" -> "Run workflow"),
+# or with `gh workflow run deploy.yml --ref main`.
+#
+# The consequence is real and worth stating: pushing to main changes nothing
+# that a visitor sees. The live site only moves when this workflow is run. If
+# the privacy policy or any other legal page changes, dispatch this before
+# telling anyone the page is updated.
 on:
-  push:
-    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      ref_note:
+        description: 'Optional note recorded with this run (for example: 1.5.0 privacy policy)'
+        required: false
+        default: ''
 
 permissions:
   contents: read

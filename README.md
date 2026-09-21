@@ -66,7 +66,19 @@ npm run preview
 
 ## Deployment
 
-Pushing to `main` automatically triggers a GitHub Actions workflow that builds and deploys to GitHub Pages.
+Deployment is **manual**, so that Actions minutes are spent deliberately. Pushing to `main`
+changes nothing a visitor sees; the live site moves only when the workflow is run:
+
+```bash
+gh workflow run deploy.yml --ref main -f ref_note="what this deploy is for"
+```
+
+Or from the Actions tab: **Deploy to GitHub Pages** -> **Run workflow**.
+
+This matters most for the legal pages. [pages/Privacy.tsx](pages/Privacy.tsx) is the privacy
+policy the Chrome Web Store listing links to, so a change to it is not live, and must not be
+described as live, until this workflow has run and
+<https://palworks.github.io/Gmail-Labels-As-Tabs/#/privacy> shows it.
 
 ## License
 
