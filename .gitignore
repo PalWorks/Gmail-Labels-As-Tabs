@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal notes must never sit in public/, which vite copies verbatim into the
+# published site. agent_docs_guide.md lives in the extension repository.
+public/agent_docs_guide.md
+public/*.internal.*
