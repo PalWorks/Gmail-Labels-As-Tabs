@@ -1,6 +1,20 @@
 import { Mail, Search, Pin, Layout, Shield, FileText } from 'lucide-react';
 
-export const APP_NAME = "Gmail Labels & Queries as Tabs";
+/**
+ * The name in the navbar and the footer.
+ *
+ * Deliberately the short form, and deliberately the *declared* short form:
+ * "Gmail Labels as Tabs" is the alternateName in the homepage's
+ * SoftwareApplication data, so a system reading the site sees two names for
+ * one product rather than several for what might be several. The full name,
+ * "Gmail Labels and Search Queries as Tabs", is in the page title, the H1 of
+ * the FAQ answer, the structured data and the Chrome Web Store, and is too
+ * long to sit in a navbar next to a logo.
+ *
+ * It read "Gmail Labels & Queries as Tabs" until 2026-09-22, which matched
+ * nothing anywhere else.
+ */
+export const APP_NAME = "Gmail Labels as Tabs";
 export const APP_DESCRIPTION = "Turn any Gmail label or search into a permanent inbox tab.";
 
 export const NAV_LINKS = [
