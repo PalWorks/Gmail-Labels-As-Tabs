@@ -34,7 +34,7 @@ Every line here can be checked against the public source repository.
 - Cleanup rules never run on the publisher's side. The extension generates a
   Google Apps Script that the user pastes into their own account and schedules
   themselves. Mail is moved to Trash, where Gmail keeps it for 30 days.
-- Current version: 1.6.1.
+- Current version: 1.6.2.
 
 ## Answers
 

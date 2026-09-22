@@ -15,6 +15,36 @@ type Release = {
 
 const RELEASES: Release[] = [
   {
+    version: 'v1.6.2',
+    date: '22 September 2026',
+    tag: 'Onboarding & polish',
+    tagClass: 'bg-[#E6F4EA] text-[#137333]',
+    summary:
+      'A tour that shows you the extension instead of describing it, a menu behind the toolbar icon, and an end to the black flash while everything loads.',
+    points: [
+      {
+        title: 'A one-minute tour, over your own inbox',
+        body:
+          'Six steps, each one demonstrating the tab bar in a working miniature inside the panel: labels moving up out of the sidebar, a search being saved as a tab, unread counts filling in, colours, dragging to reorder, and the cleanup script a rule generates. The last step is the theme picker, and your real tab bar changes behind the panel as you choose. It opens on install and you can reopen it any time from the toolbar icon or from Settings.',
+      },
+      {
+        title: 'A menu behind the toolbar icon',
+        body:
+          'Configure tabs, Show me around, All settings, and Help & support. Clicking the icon used to do nothing at all unless you were already on Gmail; now it offers to open Gmail for you.',
+      },
+      {
+        title: 'No more black flash',
+        body:
+          'The tab bar used to appear over Gmail as a dark strip for a moment before settling into your theme, and the settings page opened black before turning light. Both were the extension painting a colour before it knew which one you wanted. It now shows nothing rather than a guess, and the settings page opens in the theme you last used.',
+      },
+      {
+        title: '"System" means Gmail\'s theme, not your computer\'s',
+        body:
+          "Gmail's theme is an account setting, so a dark desktop says nothing about the inbox the tab bar has to blend into. If your desktop is dark and your Gmail is light, the bar, the tour, the toolbar menu and the settings page now all follow Gmail. Your desktop is used only when no Gmail tab has reported a theme yet.",
+      },
+    ],
+  },
+  {
     version: 'v1.5.0',
     date: '21 September 2026',
     tag: 'Hardening',
