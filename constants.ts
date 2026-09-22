@@ -4,6 +4,7 @@ export const APP_NAME = "Gmail Labels & Queries as Tabs";
 export const APP_DESCRIPTION = "Turn any Gmail label or search into a permanent inbox tab.";
 
 export const NAV_LINKS = [
+  { name: 'Tour', href: '/#tour' },
   { name: 'Features', href: '/#features' },
   { name: 'How it Works', href: '/#how-it-works' },
   { name: 'Pricing', href: '/#pricing' },

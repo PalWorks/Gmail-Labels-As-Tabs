@@ -1,0 +1,98 @@
+/*
+ * tour.css
+ *
+ * The frame around the embedded product tour. The tour's own styling is
+ * vendored from the extension and is not touched here; this file only
+ * describes the surface it sits on, which is the thing a chosen theme retints.
+ */
+
+.glt-tour-outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.glt-tour {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+    border-radius: 24px;
+    background: #e8eefb;
+    border: 1px solid #e1e3e1;
+    box-shadow: 0 18px 40px rgba(12, 32, 66, 0.1);
+    transition:
+        background-color 0.45s ease,
+        border-color 0.45s ease;
+}
+
+.glt-tour[data-resolved='dark'] {
+    background: #15171b;
+    border-color: #2b2f36;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.36);
+}
+
+/* The panel is width: min(600px, 100%); without this it sits against the
+   left edge of a wide frame rather than in the middle of it. */
+.glt-tour-mount {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.glt-tour .glt-ob {
+    box-shadow: 0 6px 22px rgba(12, 32, 66, 0.14);
+}
+
+.glt-tour[data-resolved='dark'] .glt-ob {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+.glt-tour-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    max-width: 620px;
+    text-align: center;
+}
+
+.glt-tour-restart {
+    appearance: none;
+    border: 1px solid #747775;
+    background: transparent;
+    color: #0b57d0;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 7px 18px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+}
+
+.glt-tour-restart:hover {
+    background: #f0f4f9;
+}
+
+.glt-tour-restart:focus-visible {
+    outline: 2px solid #0b57d0;
+    outline-offset: 2px;
+}
+
+.glt-tour-note {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #444746;
+}
+
+@media (max-width: 640px) {
+    .glt-tour {
+        padding: 16px 10px;
+        border-radius: 18px;
+    }
+}

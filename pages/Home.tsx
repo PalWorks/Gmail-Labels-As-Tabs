@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, Inbox, Users, Tag, Filter, Plus, CheckCircle, Pencil, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { Button } from '../components/Button';
+import { Tour } from '../components/Tour';
 import { FEATURES, TESTIMONIALS_COL_1, TESTIMONIALS_COL_2, TESTIMONIALS_COL_3 } from '../constants';
+import { FAQ_ITEMS } from '../content/faq';
 
 interface Review {
   quote: string;
@@ -46,28 +48,7 @@ const DEMO_ITEMS: CarouselItem[] = [
   }
 ];
 
-const FAQ_ITEMS = [
-  {
-    question: "What is Gmail Labels as Tabs?",
-    answer: "Gmail Labels as Tabs is a free Chrome extension that lets you pin any Gmail label or search query as a native tab alongside Primary, Social, and Promotions. It integrates seamlessly with Gmail's interface."
-  },
-  {
-    question: "Is Gmail Labels as Tabs free?",
-    answer: "Yes, completely free with no hidden costs, no premium tier, and no ads. It is also open source."
-  },
-  {
-    question: "Does this extension read my emails?",
-    answer: "No. The extension operates entirely within your browser. It does not collect, store, or transmit your emails or personal data to any external server. All settings are stored locally in your browser."
-  },
-  {
-    question: "How do I add a Gmail label as a tab?",
-    answer: "Open Gmail, click the settings icon on the tab bar, type the label name (e.g., 'Invoices' or 'Clients'), and click Add. Your new tab appears instantly."
-  },
-  {
-    question: "Does it work with Gmail dark mode?",
-    answer: "Yes. The extension automatically detects Gmail's theme and adapts its appearance to match both light and dark modes."
-  }
-];
+
 
 const DemoCarousel: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -283,6 +264,23 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Interactive tour: the extension's own onboarding, running here */}
+      <section id="tour" className="py-20 bg-white scroll-mt-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-sm text-[#0B57D0] font-bold tracking-wide uppercase">Take the tour</h2>
+            <p className="mt-2 text-3xl leading-8 font-normal text-[#1F1F1F] sm:text-4xl">
+              See it work before you install
+            </p>
+            <p className="mt-4 text-lg text-[#444746] max-w-2xl mx-auto">
+              This is the extension's own tour, the one it opens over Gmail on the day you install it, running
+              right here. Six steps, about a minute.
+            </p>
+          </div>
+          <Tour />
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section id="features" className="py-20 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -443,7 +441,7 @@ export const Home: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-normal text-[#1F1F1F]">Frequently Asked Questions</h2>
-            <p className="mt-4 text-lg text-[#444746]">Everything you need to know about Gmail Labels as Tabs.</p>
+            <p className="mt-4 text-lg text-[#444746]">Everything you need to know about Gmail Labels and Search Queries as Tabs.</p>
           </div>
 
           <div className="space-y-4">
@@ -461,21 +459,14 @@ export const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* FAQPage JSON-LD */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": FAQ_ITEMS.map(item => ({
-              "@type": "Question",
-              "name": item.question,
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": item.answer
-              }
-            }))
-          })
-        }} />
+        {/*
+          The FAQPage structured data for this list is written into index.html
+          at build time by vite.config.ts, from the same content/faq.ts this
+          section renders. It used to be injected here, which meant it existed
+          only after React had run: fine for Google, invisible to every crawler
+          that does not execute JavaScript, which is most of the ones that
+          answer questions.
+        */}
       </section>
 
       {/* CTA */}

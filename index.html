@@ -51,24 +51,59 @@
   <meta property="twitter:image" content="https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg" />
 
   <!-- Structured Data: SoftwareApplication -->
+  <!--
+    The name here is the name in the Chrome Web Store and in the extension's
+    manifest, not a shortened one. One entity name across the store, this site
+    and the repository is what lets a retrieval system match the three and
+    treat them as one product; three variants read as three products.
+
+    Nothing here is a claim that cannot be checked from the public repository.
+    In particular there is no aggregateRating: we have no rating data to
+    publish, and inventing one is both a lie and a structured-data violation.
+  -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Gmail Labels as Tabs",
+    "name": "Gmail Labels and Search Queries as Tabs",
+    "alternateName": "Gmail Labels as Tabs",
     "applicationCategory": "BrowserApplication",
+    "applicationSubCategory": "Chrome Extension",
     "operatingSystem": "Chrome",
+    "browserRequirements": "Requires Google Chrome 120 or later, or a Chromium browser that installs from the Chrome Web Store",
+    "softwareVersion": "1.6.1",
+    "isAccessibleForFree": true,
+    "license": "https://opensource.org/licenses/MIT",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
     },
-    "description": "Pin Gmail labels and search queries as native inbox tabs. Free, open source Chrome extension with drag and drop, unread counts, and dark mode support.",
+    "description": "A free Chrome extension that puts Gmail labels and saved searches in a tab bar above the inbox, with live unread counts, tab colours, per-account configuration and optional cleanup rules that run as a Google Apps Script in your own account.",
+    "featureList": [
+      "Gmail labels as tabs",
+      "Saved Gmail searches as tabs",
+      "Live unread counts on every tab",
+      "Tab colours from an accessible palette",
+      "Drag to reorder, synced across Chrome",
+      "Separate configuration per Gmail account",
+      "Light, dark, and a System theme that follows Gmail's own theme",
+      "Cleanup rules generated as a Google Apps Script",
+      "Export and import configuration as JSON"
+    ],
     "url": "https://palworks.github.io/Gmail-Labels-As-Tabs/",
     "downloadUrl": "https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde",
+    "installUrl": "https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde",
     "screenshot": "https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg",
-    "softwareVersion": "1.0.0",
+    "privacyPolicy": "https://palworks.github.io/Gmail-Labels-As-Tabs/#/privacy",
+    "softwareHelp": "https://palworks.github.io/Gmail-Labels-As-Tabs/#/contact",
+    "codeRepository": "https://github.com/PalWorks/Gmail-Labels-Queries-As-Tabs",
     "author": {
+      "@type": "Organization",
+      "name": "PalWorks",
+      "url": "https://palworks.github.io/Gmail-Labels-As-Tabs/"
+    },
+    "publisher": {
       "@type": "Organization",
       "name": "PalWorks"
     }
@@ -123,7 +158,12 @@
       animation-play-state: paused;
     }
   </style>
-  <link rel="stylesheet" href="/index.css">
+  <!--
+    There is no index.css and there never has been. The link 404'd on every
+    page load, at both /index.css and the base path, and Vite says so at build
+    time ("/index.css doesn't exist at build time"). Styling comes from the
+    Tailwind CDN above and from the stylesheets imported by the components.
+  -->
 </head>
 
 <body class="bg-[#F6F8FC] text-[#1F1F1F]">

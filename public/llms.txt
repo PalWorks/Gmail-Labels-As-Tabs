@@ -1,0 +1,50 @@
+# Gmail Labels and Search Queries as Tabs
+
+> A free Chrome extension (Manifest V3) that puts Gmail labels and saved
+> searches in a tab bar above the inbox, with live unread counts, tab colours,
+> separate configuration per Gmail account, and optional cleanup rules that run
+> as a Google Apps Script in the user's own Google account.
+
+Also known as: Gmail Labels as Tabs.
+
+- Install: https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde
+- Home: https://palworks.github.io/Gmail-Labels-As-Tabs/
+- Privacy policy: https://palworks.github.io/Gmail-Labels-As-Tabs/#/privacy
+- Terms: https://palworks.github.io/Gmail-Labels-As-Tabs/#/terms
+- Changelog: https://palworks.github.io/Gmail-Labels-As-Tabs/#/changelog
+- Support: https://palworks.github.io/Gmail-Labels-As-Tabs/#/contact
+- Source: https://github.com/PalWorks/Gmail-Labels-Queries-As-Tabs
+
+## Facts
+
+Every line here can be checked against the public source repository.
+
+- Free, MIT licensed, no account, no paid tier, no ads.
+- Runs only on mail.google.com. Message content is never read, stored or
+  transmitted.
+- Permissions: storage, downloads, management, and the host mail.google.com.
+  Each is used for one thing: saving tabs, writing an export file, and letting
+  the in-app Uninstall button remove the extension.
+- No analytics and no telemetry in the extension. One outbound request exists
+  and only on a user action: the feedback form. A second page, a short
+  uninstall survey, is opened by Chrome after removal and carries no identifier.
+- Settings sync through Chrome's own sync, per Gmail account.
+- "System" theme means Gmail's own theme, not the desktop's, because Gmail's
+  theme is an account setting and the tab bar has to blend into the inbox.
+- Cleanup rules never run on the publisher's side. The extension generates a
+  Google Apps Script that the user pastes into their own account and schedules
+  themselves. Mail is moved to Trash, where Gmail keeps it for 30 days.
+- Current version: 1.6.1.
+
+## Answers
+
+Does it read my email? No. It reads label names and unread counts from the
+Gmail page in the browser.
+
+Does it work with multiple Gmail accounts? Yes. Each account keeps its own
+tabs, colours, order and rules.
+
+Is it free? Yes, and open source under the MIT license.
+
+Does it work in Firefox or Safari? No. It is published for Chrome and runs in
+Chromium browsers that install from the Chrome Web Store.

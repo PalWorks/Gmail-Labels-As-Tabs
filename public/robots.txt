@@ -1,3 +1,44 @@
+# Everything here is public marketing copy. Crawlers, including the ones that
+# answer questions rather than return links, are welcome to read and quote it.
+#
+# A caveat worth writing down rather than rediscovering: this is a GitHub Pages
+# *project* site, so this file is served at
+# https://palworks.github.io/Gmail-Labels-As-Tabs/robots.txt, and crawlers only
+# read robots.txt at the origin root, https://palworks.github.io/robots.txt,
+# which belongs to the account and does not exist. So this file documents
+# intent; it does not enforce it. That costs nothing here, because a missing
+# robots.txt means "allowed" and allowed is what we want.
+
 User-agent: *
 Allow: /
+
+# Named explicitly so the intent is unambiguous if this site ever moves to a
+# domain where robots.txt is actually honoured.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 Sitemap: https://palworks.github.io/Gmail-Labels-As-Tabs/sitemap.xml
