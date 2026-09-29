@@ -6,8 +6,8 @@ import { Link } from 'react-router-dom';
 // SECURITY.md and DECISIONS.md in the extension repository, and the version
 // and date are updated by hand so the page never claims to be fresher than
 // the last time somebody actually read it.
-const LAST_UPDATED = '21 September 2026';
-const COVERS_VERSION = '1.5.0';
+const LAST_UPDATED = '29 September 2026';
+const COVERS_VERSION = '1.8.0';
 
 const H2: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2 className="text-xl font-medium text-[#1F1F1F] mt-8 mb-4">{children}</h2>
@@ -42,14 +42,17 @@ export const Privacy: React.FC = () => {
               Gmail Labels &amp; Queries as Tabs ("the extension") reads your Gmail page to draw a
               tab bar and to count unread messages. It does that entirely inside your browser. It
               has no database, no account, no analytics and no advertising, and it never sends your
-              mail, your contacts, your label names or your tab names anywhere. The one server we
+              mail, your contacts, your label names or your tab names anywhere. The one thing about
+              your mail that can leave is a sender's domain, and only if you turn website icons on
+              (section 4c). The one server we
               run is the feedback relay described in section 4, which is reached only when you
               press Send and which stores nothing.
             </p>
             <p className="mb-4">
-              Exactly two things ever leave your browser, and both are listed in full in section 4.
-              One happens only when you press a button. The other happens only after you have
-              already uninstalled.
+              Exactly three things can ever leave your browser, and all three are listed in full in
+              section 4. One happens only when you press a button. One happens only after you have
+              already uninstalled. The third happens only if you turn on two settings that are off
+              by default, and it sends a sender's domain and nothing else.
             </p>
 
             <H2>2. What the extension stores, and where</H2>
@@ -63,6 +66,12 @@ export const Privacy: React.FC = () => {
               <li>
                 <strong>Your theme preference</strong> is stored in <code>chrome.storage.local</code>,
                 which stays on the one device.
+              </li>
+              <li>
+                <strong>Two diagnostic records</strong> are also kept in <code>chrome.storage.local</code>:
+                whether the parts of the extension that reach into Gmail worked the last time they
+                were tried, and the names Gmail's page used for its inbox rows the last time sender
+                icons drew them. Neither holds anything about your mail, and neither is ever sent.
               </li>
               <li>
                 <strong>Nothing else is stored.</strong> No message, subject, sender, address or
@@ -86,7 +95,7 @@ export const Privacy: React.FC = () => {
               not transmitted. The extension has no Gmail API access, no OAuth token and no API key.
             </p>
 
-            <H2>4. The two things that leave your browser</H2>
+            <H2>4. The three things that can leave your browser</H2>
             <p className="mb-4">
               <strong>a. Feedback you choose to send.</strong> If you fill in the Support &amp;
               Feedback form inside the extension and press Send, we receive your message, the
@@ -107,18 +116,34 @@ export const Privacy: React.FC = () => {
               you do fill it in, Tally processes it under
               {' '}<a className="text-[#0B57D0] hover:underline" href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener noreferrer">their privacy policy</a>.
             </p>
+            <p className="mb-4">
+              <strong>c. Website icons, only if you turn them on.</strong> Sender icons, added in
+              1.8.0, put a small chip in each inbox row naming the organisation the mail is from.
+              They are off by default, and turned on they draw a coloured letter and request
+              nothing. Only if you also turn on <em>Load website icons</em> does the extension ask
+              Google's icon service for each sender's website icon, at <code>t0.gstatic.com</code>,
+              or at <code>www.google.com</code> if that cannot be reached. What it sends is the
+              sender's domain alone, such as <code>example.com</code>: never the address, the name,
+              the subject or anything in the message. The request carries no referrer, and each
+              domain is asked once and remembered for the session. Google handles those requests
+              under its own privacy policy.
+            </p>
 
             <H2>5. Permissions, and why each one exists</H2>
             <ul className="list-disc pl-6 space-y-2 mb-4">
-              <li><code>storage</code> — save your tabs, rules and theme.</li>
+              <li><code>storage</code> — save your tabs, rules, preferences and theme.</li>
               <li><code>downloads</code> — write the JSON backup file when you press Export.</li>
               <li><code>management</code> — let the Uninstall button in Settings remove the extension.</li>
+              <li><code>scripting</code> — start the tab bar in a Gmail tab you already had open. Chrome
+                only runs an extension in pages opened after it is installed or updated, so without this
+                you would have to reload Gmail by hand before the bar appeared. Added in 1.7.3.</li>
               <li><code>host permission for https://mail.google.com/*</code> — run inside Gmail, which is the whole point.</li>
             </ul>
             <p className="mb-4">
-              There is no <code>&lt;all_urls&gt;</code>, no access to any other site, and no
-              {' '}<code>scripting</code> permission. The extension cannot run on any page other
-              than Gmail.
+              There is no <code>&lt;all_urls&gt;</code> and no access to any other site. The
+              {' '}<code>scripting</code> permission injects one file, the extension's own content
+              script, and only into <code>mail.google.com</code>: it cannot run on any page other
+              than Gmail, and it never loads code from anywhere else.
             </p>
 
             <H2>6. Automation rules run under your account, not ours</H2>
