@@ -1,43 +1,42 @@
-# Everything here is public marketing copy. Crawlers, including the ones that
+# Everything here is public product copy. Crawlers, including the ones that
 # answer questions rather than return links, are welcome to read and quote it.
 #
 # A caveat worth writing down rather than rediscovering: this is a GitHub Pages
 # *project* site, so this file is served at
 # https://palworks.github.io/Gmail-Labels-As-Tabs/robots.txt, and crawlers only
 # read robots.txt at the origin root, https://palworks.github.io/robots.txt,
-# which belongs to the account and does not exist. So this file documents
-# intent; it does not enforce it. That costs nothing here, because a missing
-# robots.txt means "allowed" and allowed is what we want.
+# which belongs to the PalWorks account and does not exist. So this file
+# documents intent; it does not enforce it. That costs nothing here, because a
+# missing robots.txt means "allowed", and allowed is what we want.
+#
+# The sitemap and llms.txt below are therefore also submitted directly: the
+# sitemap in Google Search Console and Bing Webmaster Tools, llms.txt by being
+# linked from every page's head.
 
 User-agent: *
 Allow: /
 
-# Named explicitly so the intent is unambiguous if this site ever moves to a
-# domain where robots.txt is actually honoured.
+# Named explicitly, so the intent is unambiguous if the site ever moves to an
+# origin where this file is honoured. Search and answer crawlers, then the
+# agents that fetch a page because a person asked about it.
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
 User-agent: GPTBot
-Allow: /
-
 User-agent: OAI-SearchBot
-Allow: /
-
 User-agent: ChatGPT-User
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
 User-agent: ClaudeBot
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
 User-agent: Google-Extended
-Allow: /
-
 User-agent: Applebot-Extended
-Allow: /
-
+User-agent: Meta-ExternalAgent
+User-agent: Amazonbot
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
 User-agent: CCBot
 Allow: /
 

@@ -1,24 +1,57 @@
-import React, { useEffect } from 'react';
-import { History } from 'lucide-react';
+import React from 'react';
+import { DocPage } from '../components/DocPage';
+import { REPO_URL, isLive } from '../content/site';
 
 // Mirrors CHANGELOG.md in the extension repository, trimmed to what a user
 // would care about. When a release ships, add an entry here too: the store
-// listing links to this page.
+// listing links to this page. An entry for a version newer than the one the
+// store serves is written ahead and stays hidden until LIVE_VERSION reaches it.
 type Release = {
   version: string;
   date: string;
   tag: string;
-  tagClass: string;
+  /** The dotted version this entry is for, to hide it until the store serves it. */
+  release: string;
   summary: string;
   points: { title: string; body: string }[];
 };
 
 const RELEASES: Release[] = [
   {
+    version: 'v1.8.0',
+    release: '1.8.0',
+    date: '29 September 2026',
+    tag: 'Sender icons & Gmail menu',
+    summary:
+      'Add a label from Gmail\'s own menu, see who mail is from at a glance, and no reload after installing. Carries everything built since 1.6.2.',
+    points: [
+      {
+        title: '"Show as Tabs" in Gmail\'s label menu',
+        body:
+          'The three dots beside any label in the sidebar now end with "Show as Tabs", or "Remove from Tabs" if it already has one. Sublabels work the same way.',
+      },
+      {
+        title: 'Sender icons, off until you turn them on',
+        body:
+          'A small chip at the start of each inbox row names the organisation the mail is from, such as mashreq.com, with a coloured letter. Turn on Load website icons as well and the organisation\'s own icon replaces the letter; only the domain is sent, to Google\'s icon service.',
+      },
+      {
+        title: 'No reload after installing or updating',
+        body:
+          'A Gmail tab that was already open gets the tab bar on its own, without losing an open draft. This is what the new scripting permission is for, and it runs only on mail.google.com.',
+      },
+      {
+        title: 'Only the tab you are looking at is highlighted',
+        body:
+          'Opening a sublabel no longer lights its parent\'s tab as well, and a tab for "Delete" no longer reacts to "Deleted Items".',
+      },
+    ],
+  },
+  {
     version: 'v1.6.2',
+    release: '1.6.2',
     date: '22 September 2026',
     tag: 'Onboarding & polish',
-    tagClass: 'bg-[#E6F4EA] text-[#137333]',
     summary:
       'A tour that shows you the extension instead of describing it, a menu behind the toolbar icon, and an end to the black flash while everything loads.',
     points: [
@@ -46,9 +79,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.5.0',
+    release: '1.5.0',
     date: '21 September 2026',
     tag: 'Hardening',
-    tagClass: 'bg-[#FCE8E6] text-[#C5221F]',
     summary:
       'No new features. This release is about correctness and safety, and about the tests that stop each problem coming back.',
     points: [
@@ -86,9 +119,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.4.0',
+    release: '1.4.0',
     date: '21 September 2026',
     tag: 'Feedback',
-    tagClass: 'bg-[#E8F0FE] text-[#1967D2]',
     summary: 'A way to reach us without leaving the extension.',
     points: [
       {
@@ -100,9 +133,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.3.0',
+    release: '1.3.0',
     date: '9 July 2026',
     tag: 'Colours & rules',
-    tagClass: 'bg-[#E6F4EA] text-[#188038]',
     summary: 'Make the bar yours, and automate the boring parts.',
     points: [
       {
@@ -124,9 +157,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.2.1',
+    release: '1.2.1',
     date: '7 July 2026',
     tag: 'Fixes',
-    tagClass: 'bg-[#F1F3F4] text-[#444746]',
     summary: 'Accessibility and multi-account polish.',
     points: [
       {
@@ -138,9 +171,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.1.0 and v1.2.0',
+    release: '1.2.0',
     date: '2025 to 2026',
     tag: 'Foundations',
-    tagClass: 'bg-[#F1F3F4] text-[#444746]',
     summary: 'Rebuilt internals, a real test suite and a real build pipeline.',
     points: [
       {
@@ -152,9 +185,9 @@ const RELEASES: Release[] = [
   },
   {
     version: 'v1.0.0',
+    release: '1.0.0',
     date: '2025',
     tag: 'Initial release',
-    tagClass: 'bg-[#E8F0FE] text-[#1967D2]',
     summary: 'The first version, with the core idea intact.',
     points: [
       {
@@ -166,64 +199,36 @@ const RELEASES: Release[] = [
   },
 ];
 
-export const Changelog: React.FC = () => {
-  useEffect(() => {
-    document.title = 'Changelog | Gmail Labels as Tabs';
-  }, []);
-
-  return (
-    <div className="bg-[#F6F8FC] min-h-screen pt-24 pb-16">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-3xl shadow-sm p-8 md:p-12 border border-[#E1E3E1]">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="p-3 bg-[#E8F0FE] rounded-full">
-              <History className="w-6 h-6 text-[#1A73E8]" />
-            </div>
-            <h1 className="text-3xl font-normal text-[#1F1F1F]">Changelog</h1>
-          </div>
-
-          <div className="space-y-12">
-            {RELEASES.map((release) => (
-              <div key={release.version} className="relative border-l-2 border-[#E1E3E1] pl-8 pb-4">
-                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#0B57D0] border-4 border-white shadow-sm"></div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                  <h2 className="text-2xl font-medium text-[#1F1F1F]">{release.version}</h2>
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mt-2 sm:mt-0 ${release.tagClass}`}
-                  >
-                    {release.tag}
-                  </span>
-                </div>
-                <p className="text-sm text-[#5F6368] mb-4">{release.date}</p>
-                <div className="prose prose-slate prose-lg text-[#444746]">
-                  <p>{release.summary}</p>
-                  <ul className="list-disc pl-5 mt-4 space-y-2">
-                    {release.points.map((point) => (
-                      <li key={point.title}>
-                        <strong>{point.title}:</strong> {point.body}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+export const Changelog: React.FC = () => (
+  <DocPage
+    title="Changelog"
+    crumb="Changelog"
+    lede="What changed in each release that has reached the Chrome Web Store, newest first."
+  >
+    <ol className="releases">
+      {RELEASES.filter((r) => isLive(r.release)).map((release) => (
+        <li key={release.version} className="release">
+          <h2 id={release.version}>
+            {release.version} <span className="release__tag">{release.tag}</span>
+          </h2>
+          <p className="release__date">{release.date}</p>
+          <p>{release.summary}</p>
+          <ul>
+            {release.points.map((point) => (
+              <li key={point.title}>
+                <strong>{point.title}.</strong> {point.body}
+              </li>
             ))}
-          </div>
-
-          <p className="mt-12 text-sm text-[#5F6368]">
-            The full technical changelog, including every fix and the reasoning behind each
-            decision, is in the{' '}
-            <a
-              className="text-[#0B57D0] hover:underline"
-              href="https://github.com/PalWorks/Gmail-Labels-Queries-As-Tabs/blob/main/CHANGELOG.md"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              repository
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
+          </ul>
+        </li>
+      ))}
+    </ol>
+    <p className="doc__aside">
+      The full technical changelog, with every fix and the reasoning behind each decision, is in the{' '}
+      <a href={`${REPO_URL}/blob/main/CHANGELOG.md`} target="_blank" rel="noopener">
+        repository
+      </a>
+      .
+    </p>
+  </DocPage>
+);

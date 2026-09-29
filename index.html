@@ -1,7 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-variant="a">
 
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!--
+    Old links used the hash router: #/privacy, #/changelog, #/contact. The
+    Chrome Web Store listing still points at #/privacy. Every page is now a
+    real address, and this sends the old form to it before anything else
+    loads, so analytics counts one visit rather than two.
+  -->
+  <script>
+    (function () {
+      var h = location.hash;
+      if (h.indexOf('#/') !== 0) return;
+      var p = h.slice(2).split(/[?#]/)[0].replace(/^\/+|\/+$/g, '');
+      location.replace('/Gmail-Labels-As-Tabs/' + (p ? p + '/' : ''));
+    })();
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-F4XVVJ95GG"></script>
   <script>
@@ -18,157 +34,32 @@
       y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
     })(window, document, "clarity", "script", "usqx1oq109");
   </script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-site-verification" content="V8RCrnYSBfUnlFcyTX2FOw9Knf2_olpF4HXWj0xaSac" />
 
-  <!-- Primary Meta Tags -->
-  <title>Gmail Labels as Tabs | Free Chrome Extension to Organize Your Inbox</title>
-  <meta name="description" content="Pin Gmail labels and search queries as native inbox tabs. Free, open source Chrome extension with drag and drop, unread counts, and dark mode support." />
-  <link rel="canonical" href="https://palworks.github.io/Gmail-Labels-As-Tabs/" />
-
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://palworks.github.io/Gmail-Labels-As-Tabs/" />
-  <meta property="og:title" content="Gmail Labels as Tabs | Organize Your Inbox with Custom Tabs" />
-  <meta property="og:description" content="Pin Gmail labels and search queries as native inbox tabs. Free, open source Chrome extension with drag and drop, unread counts, and dark mode support." />
-  <meta property="og:image" content="https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg" />
-  <meta property="og:image:secure_url" content="https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg" />
-  <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:image:width" content="1024" />
-  <meta property="og:image:height" content="537" />
-  <meta property="og:image:alt" content="Gmail Labels as Tabs Chrome Extension Preview" />
-
-  <!-- WhatsApp / Schema.org -->
-  <meta itemprop="image" content="https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg">
-
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:domain" content="palworks.github.io" />
-  <meta property="twitter:url" content="https://palworks.github.io/Gmail-Labels-As-Tabs/" />
-  <meta property="twitter:title" content="Gmail Labels as Tabs | Organize Your Inbox with Custom Tabs" />
-  <meta property="twitter:description" content="Pin Gmail labels and search queries as native inbox tabs. Free, open source Chrome extension with drag and drop, unread counts, and dark mode support." />
-  <meta property="twitter:image" content="https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg" />
-
-  <!-- Structured Data: SoftwareApplication -->
   <!--
-    The name here is the name in the Chrome Web Store and in the extension's
-    manifest, not a shortened one. One entity name across the store, this site
-    and the repository is what lets a retrieval system match the three and
-    treat them as one product; three variants read as three products.
-
-    Nothing here is a claim that cannot be checked from the public repository.
-    In particular there is no aggregateRating: we have no rating data to
-    publish, and inventing one is both a lie and a structured-data violation.
+    Everything between these two markers is written per page by
+    scripts/prerender.mjs from content/routes.ts and content/schema.ts: title,
+    description, canonical, Open Graph, Twitter and the JSON-LD graph. What is
+    here is only what the dev server shows.
   -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Gmail Labels and Search Queries as Tabs",
-    "alternateName": "Gmail Labels as Tabs",
-    "applicationCategory": "BrowserApplication",
-    "applicationSubCategory": "Chrome Extension",
-    "operatingSystem": "Chrome",
-    "browserRequirements": "Requires Google Chrome 120 or later, or a Chromium browser that installs from the Chrome Web Store",
-    "softwareVersion": "1.6.2",
-    "isAccessibleForFree": true,
-    "license": "https://opensource.org/licenses/MIT",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    },
-    "description": "A free Chrome extension that puts Gmail labels and saved searches in a tab bar above the inbox, with live unread counts, tab colours, per-account configuration and optional cleanup rules that run as a Google Apps Script in your own account.",
-    "featureList": [
-      "Gmail labels as tabs",
-      "Saved Gmail searches as tabs",
-      "Live unread counts on every tab",
-      "Tab colours from an accessible palette",
-      "Drag to reorder, synced across Chrome",
-      "Separate configuration per Gmail account",
-      "Light, dark, and a System theme that follows Gmail's own theme",
-      "Cleanup rules generated as a Google Apps Script",
-      "Export and import configuration as JSON"
-    ],
-    "url": "https://palworks.github.io/Gmail-Labels-As-Tabs/",
-    "downloadUrl": "https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde",
-    "installUrl": "https://chromewebstore.google.com/detail/gmail-labels-and-search-q/jemjnjlplglfoiipcjhoacneigdgfmde",
-    "screenshot": "https://palworks.github.io/Gmail-Labels-As-Tabs/og-image.jpg",
-    "privacyPolicy": "https://palworks.github.io/Gmail-Labels-As-Tabs/#/privacy",
-    "softwareHelp": "https://palworks.github.io/Gmail-Labels-As-Tabs/#/contact",
-    "codeRepository": "https://github.com/PalWorks/Gmail-Labels-Queries-As-Tabs",
-    "author": {
-      "@type": "Organization",
-      "name": "PalWorks",
-      "url": "https://palworks.github.io/Gmail-Labels-As-Tabs/"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "PalWorks"
-    }
-  }
-  </script>
+  <!--HEAD:START-->
+  <title>Gmail Labels and Search Queries as Tabs</title>
+  <!--HEAD:END-->
 
-  <link rel="icon" type="image/png" href="logo.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* Smooth scrolling */
-    html {
-      scroll-behavior: smooth;
-    }
-
-    /* Vertical Marquee Animations */
-    @keyframes marquee-up {
-      0% {
-        transform: translateY(0);
-      }
-
-      100% {
-        transform: translateY(-50%);
-      }
-    }
-
-    @keyframes marquee-down {
-      0% {
-        transform: translateY(-50%);
-      }
-
-      100% {
-        transform: translateY(0);
-      }
-    }
-
-    .animate-marquee-up {
-      animation: marquee-up 60s linear infinite;
-    }
-
-    .animate-marquee-down {
-      animation: marquee-down 60s linear infinite;
-    }
-
-    /* Pause animation on hover if desired, though often for background walls it keeps moving */
-    .group:hover .animate-marquee-up,
-    .group:hover .animate-marquee-down {
-      animation-play-state: paused;
-    }
-  </style>
-  <!--
-    There is no index.css and there never has been. The link 404'd on every
-    page load, at both /index.css and the base path, and Vite says so at build
-    time ("/index.css doesn't exist at build time"). Styling comes from the
-    Tailwind CDN above and from the stylesheets imported by the components.
-  -->
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="application-name" content="Gmail Labels as Tabs" />
+  <link rel="icon" type="image/png" href="/Gmail-Labels-As-Tabs/logo.png" />
+  <link rel="apple-touch-icon" href="/Gmail-Labels-As-Tabs/logo.png" />
+  <link rel="alternate" type="text/plain" title="llms.txt" href="/Gmail-Labels-As-Tabs/llms.txt" />
+  <link rel="sitemap" type="application/xml" href="/Gmail-Labels-As-Tabs/sitemap.xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!--FONTS-->
 </head>
 
-<body class="bg-[#F6F8FC] text-[#1F1F1F]">
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+<body>
+  <div id="root"><!--APP--></div>
+  <script type="module" src="/entry-client.tsx"></script>
 </body>
 
 </html>

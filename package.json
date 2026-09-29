@@ -1,12 +1,15 @@
 {
-  "name": "pintabs-for-gmail",
+  "name": "gmail-labels-as-tabs-website",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && vite build --ssr entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
+    "build:a": "VITE_VARIANT=a npm run build",
+    "build:b": "VITE_VARIANT=b npm run build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "lucide-react": "^0.555.0",

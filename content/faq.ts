@@ -1,17 +1,20 @@
 /**
  * faq.ts
  *
- * The homepage FAQ, as data, in a module that imports nothing.
+ * The homepage FAQ, as data, in a module with no React in it.
  *
- * It has no imports on purpose: vite.config.ts reads this file to write the
- * FAQPage structured data into index.html at build time, and a module that
- * pulled in React or an icon set could not be loaded there. The page and the
- * markup therefore come from one list, so they cannot disagree.
+ * It imports nothing but site.ts on purpose: the prerender step reads this
+ * list to write the FAQPage structured data and llms.txt, and the page renders
+ * the same list, so the three cannot disagree.
  */
+
+import { isLive } from './site';
 
 export interface FaqItem {
     readonly question: string;
     readonly answer: string;
+    /** The version whose behaviour the answer describes; hidden until it is live. */
+    readonly since?: string;
 }
 
 /**
@@ -26,7 +29,7 @@ export interface FaqItem {
  * Every answer opens with Yes or No and reads on its own, because an answer
  * engine lifts a sentence, not a page.
  */
-export const FAQ_ITEMS: readonly FaqItem[] = [
+const ALL_FAQ_ITEMS: readonly FaqItem[] = [
   {
     question: "What is Gmail Labels and Search Queries as Tabs?",
     answer: "It is a free Chrome extension that puts your Gmail labels and saved searches in a tab bar across the top of Gmail, so every view you use all day is one click away instead of a scan down the sidebar. It also pins Gmail's own views, such as #starred and #sent."
@@ -41,11 +44,15 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     question: "Does it work with multiple Gmail accounts?",
-    answer: "Yes. Each account, identified by its address, keeps its own tabs, colors, order and rules, and switching accounts switches the bar."
+    answer: "Yes. Each account, identified by its address, keeps its own tabs, colours, order and rules, and switching accounts switches the bar."
   },
   {
     question: "Do my tabs follow me to another computer?",
     answer: "Yes. They sync through Chrome's own sync, the same mechanism as your bookmarks, so signing into Chrome elsewhere brings them with you."
+  },
+  {
+    question: "Can I add custom tabs to Gmail?",
+    answer: "Yes, with this extension. Gmail on its own offers only a fixed set of five category tabs (Primary, Promotions, Social, Updates and Forums). The extension adds a bar above the inbox where any label or any search can be a tab, alongside the categories rather than instead of them."
   },
   {
     question: "Can I pin a search, not just a label?",
@@ -53,7 +60,17 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     question: "How do I add a Gmail label as a tab?",
-    answer: "Open Gmail, click the settings icon on the tab bar, type the label name (for example Invoices or Clients), and click Add. The new tab appears immediately."
+    answer: "Two ways, both from the tab bar the extension adds above your inbox. Open the label in Gmail and press the + button at the end of the bar, which saves whatever view you are on, label or search, as a tab. Or press the settings icon on the bar, type the label's name (for example Invoices or Clients) and press Add Tab. The new tab appears immediately with its unread count, and you can drag it into place and give it a colour."
+  },
+  {
+    question: "Can I add a label without opening settings?",
+    answer: "Yes. Click the three dots beside any label in Gmail's sidebar and the menu ends with \"Show as Tabs\", or \"Remove from Tabs\" if it is already there. Sublabels work the same way.",
+    since: "1.7.0"
+  },
+  {
+    question: "Can it show who an email is from at a glance?",
+    answer: "Yes, if you turn on sender icons in Settings. Each inbox row gets a small chip naming the sender's organisation, such as mashreq.com, with a coloured letter or, if you allow it, the organisation's own icon. It is off until you turn it on.",
+    since: "1.8.0"
   },
   {
     question: "Does it work with Gmail dark mode?",
@@ -72,3 +89,6 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
     answer: "Export your configuration to a JSON file from Settings at any time, and import it back into a fresh profile or a new machine."
   }
 ];
+
+/** The questions whose answers are true of the version in the store today. */
+export const FAQ_ITEMS: readonly FaqItem[] = ALL_FAQ_ITEMS.filter((item) => !item.since || isLive(item.since));
