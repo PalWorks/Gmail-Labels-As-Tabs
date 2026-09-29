@@ -1,47 +1,34 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { SUPPORT_EMAIL } from '../content/site';
 import { DocPage } from '../components/DocPage';
+import { ContactForm } from '../components/ContactForm';
 
-const TALLY_SCRIPT = 'https://tally.so/widgets/embed.js';
-
-export const Contact: React.FC = () => {
-  // The form is Tally's, loaded only on this page and only once it is shown.
-  useEffect(() => {
-    const load = () => {
-      const w = window as unknown as { Tally?: { loadEmbeds: () => void } };
-      if (w.Tally) w.Tally.loadEmbeds();
-      else
-        document.querySelectorAll<HTMLIFrameElement>('iframe[data-tally-src]:not([src])').forEach((f) => {
-          f.src = f.dataset.tallySrc ?? '';
-        });
-    };
-    if (document.querySelector(`script[src="${TALLY_SCRIPT}"]`)) {
-      load();
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = TALLY_SCRIPT;
-    s.async = true;
-    s.onload = load;
-    s.onerror = load;
-    document.body.appendChild(s);
-  }, []);
-
-  return (
-    <DocPage title="Contact and support" lede="Ask a question, report a problem or suggest a feature. We read every message.">
-      <p>
-        Write to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>, or use the form below. Inside the extension,
-        the Support and Feedback page in Settings sends the same message with your extension version attached, if you
-        allow it, which makes a bug much quicker to find.
-      </p>
-      <iframe
-        data-tally-src="https://tally.so/embed/Me17aA?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
-        loading="lazy"
-        width="100%"
-        height="596"
-        title="Contact form"
-        className="tally-frame"
-      />
-    </DocPage>
-  );
-};
+export const Contact: React.FC = () => (
+  <DocPage
+    title="Contact and support"
+    crumb="Contact"
+    lede="Ask a question, report a problem or suggest a feature. A person reads every message and replies."
+  >
+    <p>
+      Use the form, or write to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>. Inside the extension, the
+      Support and Feedback page in Settings sends a message too, and can attach your extension version and browser
+      build, which makes a problem much quicker to find.
+    </p>
+    <ContactForm />
+    <h2>Before you write</h2>
+    <ul>
+      <li>
+        <strong>The tab bar is missing.</strong> Reload Gmail once. If it is still missing, say which browser you use and
+        whether Gmail is in its default or a custom theme.
+      </li>
+      <li>
+        <strong>A tab shows the wrong count.</strong> Counts come from Gmail itself. Say which label or search the tab
+        is for, and what Gmail shows for the same view.
+      </li>
+      <li>
+        <strong>You want your data removed.</strong> The extension keeps your setup in your own browser, and removing the
+        extension removes it. We hold nothing about you unless you have written to us; ask and we delete that too.
+      </li>
+    </ul>
+  </DocPage>
+);

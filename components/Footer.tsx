@@ -20,13 +20,19 @@ export const Footer: React.FC = () => (
         <p className="site-foot__heading">Product</p>
         <a href={storeLink('footer')} target="_blank" rel="noopener">Chrome Web Store</a>
         <Link to="/#tour">Take the tour</Link>
-        <Link to="/gmail-custom-tabs/">Custom tabs in Gmail, compared</Link>
         <Link to="/changelog/">Changelog</Link>
         <a href={REPO_URL} target="_blank" rel="noopener">Source code on GitHub</a>
+      </nav>
+      <nav aria-label="Guides" className="site-foot__col">
+        <p className="site-foot__heading">Guides</p>
+        <Link to="/gmail-custom-tabs/">How to add custom tabs to Gmail</Link>
+        <Link to="/gmail-search-operators/">Gmail search operators</Link>
+        <Link to="/#faq">Questions people ask</Link>
       </nav>
       <nav aria-label="Support and legal" className="site-foot__col">
         <p className="site-foot__heading">Support</p>
         <Link to="/contact/">Contact and support</Link>
+        <Link to="/about/">About</Link>
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
         <Link to="/privacy/">Privacy policy</Link>
         <Link to="/terms/">Terms</Link>

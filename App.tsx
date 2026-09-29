@@ -4,6 +4,8 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
 import { Guide } from './pages/Guide';
+import { Operators } from './pages/Operators';
+import { About } from './pages/About';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { Changelog } from './pages/Changelog';
@@ -60,6 +62,8 @@ export const App: React.FC = () => (
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/gmail-custom-tabs/" element={<Guide />} />
+        <Route path="/gmail-search-operators/" element={<Operators />} />
+        <Route path="/about/" element={<About />} />
         <Route path="/privacy/" element={<Privacy />} />
         <Route path="/terms/" element={<Terms />} />
         <Route path="/changelog/" element={<Changelog />} />

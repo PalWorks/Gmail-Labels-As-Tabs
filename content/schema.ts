@@ -40,6 +40,8 @@ import { FAQ_ITEMS } from './faq';
 import { HOWTO_STEPS, HOWTO_TITLE } from './howto';
 import { GUIDE_SECTIONS, GUIDE_SUMMARY, GUIDE_TITLE, GUIDE_UPDATED } from './guide';
 import { ROUTES, RouteMeta } from './routes';
+import { OPERATOR_FAQ, OPERATOR_GROUPS, OPERATORS_SUMMARY, OPERATORS_TITLE, OPERATORS_UPDATED } from './operators';
+import { RELEASES, isoDate } from './releases';
 
 type Node = Record<string, unknown>;
 
@@ -152,6 +154,8 @@ function breadcrumbs(route: RouteMeta): Node {
 const PAGE_TYPE: Record<RouteMeta['kind'], string> = {
   home: 'WebPage',
   guide: 'WebPage',
+  operators: 'WebPage',
+  about: 'AboutPage',
   privacy: 'WebPage',
   terms: 'WebPage',
   changelog: 'WebPage',
@@ -172,7 +176,8 @@ function webpage(route: RouteMeta): Node {
     ...(route.kind === 'home' ? {} : { breadcrumb: { '@id': url(route.path) + '#breadcrumb' } }),
     primaryImageOfPage: { '@type': 'ImageObject', url: url('og-image.jpg') },
     ...(route.kind === 'home' ? { mainEntity: { '@id': APP_ID } } : {}),
-    ...(route.kind === 'guide' ? { mainEntity: { '@id': url(route.path) + '#article' } } : {}),
+    ...(route.kind === 'guide' || route.kind === 'operators' ? { mainEntity: { '@id': url(route.path) + '#article' } } : {}),
+    ...(route.kind === 'about' ? { mainEntity: { '@id': ORG_ID } } : {}),
   };
 }
 
@@ -227,6 +232,68 @@ function guideArticle(route: RouteMeta): Node {
   };
 }
 
+function operatorsArticle(route: RouteMeta): Node {
+  return {
+    '@type': 'TechArticle',
+    '@id': url(route.path) + '#article',
+    headline: OPERATORS_TITLE,
+    description: OPERATORS_SUMMARY,
+    abstract: OPERATORS_SUMMARY,
+    inLanguage: 'en',
+    datePublished: '2026-09-29',
+    dateModified: OPERATORS_UPDATED,
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    mainEntityOfPage: { '@id': url(route.path) + '#webpage' },
+    about: { '@type': 'Thing', name: 'Gmail search operators' },
+    mentions: { '@id': APP_ID },
+    articleSection: OPERATOR_GROUPS.map((g) => g.heading),
+    image: url('og-image.jpg'),
+  };
+}
+
+function faqNode(route: RouteMeta, items: readonly { question: string; answer: string }[]): Node {
+  return {
+    '@type': 'FAQPage',
+    '@id': url(route.path) + '#faq',
+    isPartOf: { '@id': url(route.path) + '#webpage' },
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  };
+}
+
+/** Each release the changelog shows, as a version of the one product. */
+function releaseList(route: RouteMeta): Node {
+  return {
+    '@type': 'ItemList',
+    '@id': url(route.path) + '#releases',
+    name: `${PRODUCT_NAME} releases`,
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: RELEASES.length,
+    itemListElement: RELEASES.map((r, i) => {
+      const date = isoDate(r.date);
+      return {
+        '@type': 'ListItem',
+        position: i + 1,
+        item: {
+          '@type': 'SoftwareApplication',
+          name: `${PRODUCT_NAME} ${r.version}`,
+          softwareVersion: r.release,
+          applicationCategory: 'BrowserApplication',
+          operatingSystem: 'Any operating system that runs Google Chrome',
+          ...(date ? { datePublished: date } : {}),
+          description: r.summary,
+          url: url(route.path) + '#' + r.version,
+          exampleOfWork: { '@id': APP_ID },
+        },
+      };
+    }),
+  };
+}
+
 /** The complete graph for one page. */
 export function graphFor(route: RouteMeta): Node {
   const nodes: Node[] = [organization(), website(), software(), sourceCode(), webpage(route)];
@@ -234,5 +301,7 @@ export function graphFor(route: RouteMeta): Node {
   if (route.kind !== 'home') nodes.push(breadcrumbs(route));
   if (route.kind === 'home') nodes.push(faqPage(route), howTo(route));
   if (route.kind === 'guide') nodes.push(guideArticle(route));
+  if (route.kind === 'operators') nodes.push(operatorsArticle(route), faqNode(route, OPERATOR_FAQ));
+  if (route.kind === 'changelog') nodes.push(releaseList(route));
   return { '@context': 'https://schema.org', '@graph': nodes };
 }

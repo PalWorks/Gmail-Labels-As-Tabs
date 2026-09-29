@@ -67,6 +67,8 @@ modules, so they cannot disagree:
 | [content/faq.ts](content/faq.ts) | The FAQ, worded as in the store listing |
 | [content/howto.ts](content/howto.ts) | The three steps, for the page and its HowTo markup |
 | [content/guide.ts](content/guide.ts) | The "custom tabs in Gmail" guide and its comparison table |
+| [content/operators.ts](content/operators.ts) | The search operators reference |
+| [content/releases.ts](content/releases.ts) | The changelog, gated by `LIVE_VERSION` |
 | [content/schema.ts](content/schema.ts) | The JSON-LD graph per page, linked by `@id` |
 
 **When a release is approved in the Chrome Web Store, change `LIVE_VERSION` and redeploy.**
@@ -74,13 +76,27 @@ Features, FAQ answers and changelog entries from newer versions are written ahea
 hidden, or listed as coming, until then; the structured data's `featureList` and
 `softwareVersion` follow the same constant.
 
-## Two designs, until one is chosen
+## The contact form
 
-`VITE_VARIANT=a` (default, "Tab strip") or `VITE_VARIANT=b` ("Operator") picks the
-homepage design at build time: `npm run build:a`, `npm run build:b`. Both share every word
-and every section; they differ in the hero and the styling scoped under
-`html[data-variant]` in `styles/site.css`. Once one is chosen, delete the other hero, its
-CSS block, the fonts entry in `vite.config.ts` and the switch in `pages/Home.tsx`.
+[/contact/](pages/Contact.tsx) posts to a Cloudflare Worker in [worker/](worker/README.md),
+`gmail-tabs-contact.palworks.ai`, which sends the message to `support@palworks.ai` through
+Resend from `support.gmailtabs@palworks.ai`. The site holds no key. Spam defences: origin
+check, size cap, honeypot, a signed and timed proof-of-work challenge, validation of every
+field and of every attachment by its bytes, burst and daily rate limits, and single-use
+challenges. Details, tests and key rotation are in [worker/README.md](worker/README.md).
+
+## Pages written for questions people ask
+
+Besides the homepage, two guides exist because they answer the questions people put to
+search and answer engines, fairly and in full:
+
+| Page | Answers |
+|---|---|
+| [/gmail-custom-tabs/](pages/Guide.tsx) | How to add custom tabs to Gmail, with Gmail's own options compared |
+| [/gmail-search-operators/](pages/Operators.tsx) | Every Gmail search operator, with examples, from [content/operators.ts](content/operators.ts) |
+
+Keep them accurate over clever: an answer engine quotes the page that gives the whole
+answer, and stops quoting one it has caught being wrong.
 
 ## Project structure
 
@@ -90,10 +106,11 @@ CSS block, the fonts entry in `vite.config.ts` and the switch in `pages/Home.tsx
 ├── entry-server.tsx      # Renders a page at build time; never shipped
 ├── App.tsx               # Routes, scroll handling, head updates on navigation
 ├── content/              # Every claim, as data (see above)
-├── components/           # Navbar, Footer, DocPage, TabPill, SiteLink, Tour
-│   └── sections/         # Homepage sections; HeroA and HeroB are the two designs
-├── pages/                # Home, Guide, Privacy, Terms, Changelog, Contact, NotFound
-├── lib/                  # usePageMeta, store link helper
+├── components/           # Navbar, Footer, DocPage, TabPill, SiteLink, Tour, ContactForm
+│   └── sections/         # Homepage sections and the hero
+├── worker/               # The contact form relay (Cloudflare Worker), deployed on its own
+├── pages/                # Home, Guide, Operators, About, Privacy, Terms, Changelog, Contact, NotFound
+├── lib/                  # usePageMeta, store link helper, dates
 ├── styles/site.css       # All styling; styles/tour.css frames the tour
 ├── scripts/
 │   ├── prerender.mjs     # Pages, sitemap, llms.txt, llms-full.txt, 404, checks

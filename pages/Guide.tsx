@@ -1,14 +1,10 @@
 import React from 'react';
 import { DocPage } from '../components/DocPage';
+import { SiteLink as Link } from '../components/SiteLink';
 import { CompareTable } from '../components/sections/Sections';
 import { GUIDE_SECTIONS, GUIDE_SUMMARY, GUIDE_TITLE, GUIDE_UPDATED } from '../content/guide';
 import { storeLink } from '../lib/links';
-
-function readableDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${d} ${months[m - 1]} ${y}`;
-}
+import { readableDate } from '../lib/dates';
 
 export const Guide: React.FC = () => (
   <DocPage
@@ -48,6 +44,11 @@ export const Guide: React.FC = () => (
         ))}
       </section>
     ))}
+
+    <p>
+      Not sure what to put in a tab? <Link to="/gmail-search-operators/">Every Gmail search operator, with examples</Link>{' '}
+      lists the searches people keep.
+    </p>
 
     <p className="doc__cta">
       <a className="btn btn--primary btn--lg" href={storeLink('guide')} target="_blank" rel="noopener">

@@ -73,6 +73,14 @@ const ALL_FAQ_ITEMS: readonly FaqItem[] = [
     since: "1.8.0"
   },
   {
+    question: "How do I pin a Gmail search as a tab?",
+    answer: "Run the search in Gmail as usual, for example from:accounts@ has:attachment newer_than:30d, then press the + button at the end of the tab bar. The search becomes a tab with its unread count, and clicking it runs the search again live. To rename it or give it a colour, open the tab's menu and choose Edit Tab."
+  },
+  {
+    question: "Does it work with Google Workspace accounts?",
+    answer: "Yes. Workspace Gmail runs on mail.google.com like personal Gmail, so the extension works the same way, unless your organisation's administrator blocks Chrome extensions. Each Workspace and personal account keeps its own tabs."
+  },
+  {
     question: "Does it work with Gmail dark mode?",
     answer: "Yes. Light, Dark and System are all supported, and System follows Gmail's own theme, so a light Gmail on a dark desktop still gets a light tab bar."
   },
@@ -83,6 +91,10 @@ const ALL_FAQ_ITEMS: readonly FaqItem[] = [
   {
     question: "Does it work in Edge, Brave or Firefox?",
     answer: "It is built on Manifest V3 and published for Chrome. Chromium browsers that install from the Chrome Web Store, such as Edge, Brave and Opera, can run it. Firefox and Safari cannot."
+  },
+  {
+    question: "What happens to my tabs if I uninstall it?",
+    answer: "Chrome removes the extension's storage with it, so your tabs, colours and rules go too. Export them to a JSON file from Settings first if you might come back, and import the file after reinstalling."
   },
   {
     question: "How do I get my tabs back if something goes wrong?",

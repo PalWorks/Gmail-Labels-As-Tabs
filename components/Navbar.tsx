@@ -5,12 +5,12 @@ import { Menu, X } from 'lucide-react';
 import { SHORT_NAME } from '../content/site';
 import { storeLink } from '../lib/links';
 
-/** Sections of the homepage, and the one page that answers the category question. */
+/** Sections of the homepage, and the two guides. */
 const LINKS: readonly { name: string; to: string }[] = [
   { name: 'Tour', to: '/#tour' },
   { name: 'Features', to: '/#features' },
-  { name: 'How it works', to: '/#how-it-works' },
   { name: 'Compare', to: '/gmail-custom-tabs/' },
+  { name: 'Search operators', to: '/gmail-search-operators/' },
   { name: 'FAQ', to: '/#faq' },
 ];
 

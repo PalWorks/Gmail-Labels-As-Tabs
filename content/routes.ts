@@ -15,8 +15,9 @@
 
 import { PRODUCT_NAME, SHORT_NAME } from './site';
 import { GUIDE_TITLE, GUIDE_UPDATED } from './guide';
+import { OPERATORS_UPDATED } from './operators';
 
-export type RouteKind = 'home' | 'guide' | 'privacy' | 'terms' | 'changelog' | 'contact';
+export type RouteKind = 'home' | 'guide' | 'operators' | 'about' | 'privacy' | 'terms' | 'changelog' | 'contact';
 
 export interface RouteMeta {
   /** Path inside the site, '' for the homepage, always ending in '/' otherwise. */
@@ -55,6 +56,27 @@ export const ROUTES: readonly RouteMeta[] = [
     priority: 0.8,
   },
   {
+    path: 'gmail-search-operators/',
+    kind: 'operators',
+    title: 'Gmail search operators: the complete list, with examples',
+    description:
+      'Every Gmail search operator, with an example of each: from:, subject:, has:attachment, older_than:, larger:, label:, category: and more, plus the searches worth keeping as a tab.',
+    crumb: 'Gmail search operators',
+    updated: OPERATORS_UPDATED,
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
+    path: 'about/',
+    kind: 'about',
+    title: `About ${SHORT_NAME}: who makes it, and what it promises`,
+    description: `Who makes ${PRODUCT_NAME}, what it promises about your mail, and how it is kept working when Gmail changes.`,
+    crumb: 'About',
+    updated: '2026-09-29',
+    changefreq: 'yearly',
+    priority: 0.5,
+  },
+  {
     path: 'changelog/',
     kind: 'changelog',
     title: `Changelog | ${SHORT_NAME}`,
@@ -69,7 +91,7 @@ export const ROUTES: readonly RouteMeta[] = [
     kind: 'privacy',
     title: `Privacy policy | ${SHORT_NAME}`,
     description:
-      'What the extension stores, what it never reads, and the only three things that can leave your browser, each listed in full.',
+      'What the extension stores, what it never reads, the only three things that can leave your browser, and what the contact form sends.',
     crumb: 'Privacy policy',
     updated: '2026-09-29',
     changefreq: 'monthly',
@@ -78,10 +100,10 @@ export const ROUTES: readonly RouteMeta[] = [
   {
     path: 'terms/',
     kind: 'terms',
-    title: `Terms and conditions | ${SHORT_NAME}`,
-    description: `The terms for using ${PRODUCT_NAME}.`,
+    title: `Terms of use | ${SHORT_NAME}`,
+    description: `The terms for using ${PRODUCT_NAME}: an MIT licensed, free extension with no warranty.`,
     crumb: 'Terms',
-    updated: '2026-09-21',
+    updated: '2026-09-29',
     changefreq: 'yearly',
     priority: 0.3,
   },
@@ -89,7 +111,7 @@ export const ROUTES: readonly RouteMeta[] = [
     path: 'contact/',
     kind: 'contact',
     title: `Contact and support | ${SHORT_NAME}`,
-    description: 'Ask a question, report a problem or suggest a feature. We read every message.',
+    description: 'Ask a question, report a problem or suggest a feature, with screenshots attached. A person reads every message.',
     crumb: 'Contact',
     updated: '2026-09-29',
     changefreq: 'yearly',

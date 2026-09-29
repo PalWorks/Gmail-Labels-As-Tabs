@@ -1,40 +1,27 @@
 import path from 'path';
-import { defineConfig, loadEnv, Plugin } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
-/**
- * The two designs under review. Each has its own typefaces; the page head
- * loads only the chosen one's. After the choice, the other entry, its
- * stylesheet and VITE_VARIANT go.
- */
-const FONTS: Record<string, string> = {
-  a: 'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500..800&family=Hanken+Grotesk:wght@400..600&family=Martian+Mono:wght@400..500&display=swap',
-  b: 'https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap',
-};
+/** The typefaces: Schibsted Grotesk for display, Hanken Grotesk for text, Martian Mono for Gmail searches. */
+const FONTS =
+  'https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500..800&family=Hanken+Grotesk:wght@400..600&family=Martian+Mono:wght@400..500&display=swap';
 
-function variantHead(variant: string): Plugin {
+function fontsHead(): Plugin {
   return {
-    name: 'variant-head',
+    name: 'fonts-head',
     transformIndexHtml(html) {
-      return html
-        .replace('<!--FONTS-->', `<link rel="stylesheet" href="${FONTS[variant]}" />`)
-        .replace('data-variant="a"', `data-variant="${variant}"`);
+      return html.replace('<!--FONTS-->', `<link rel="stylesheet" href="${FONTS}" />`);
     },
   };
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const variant = (process.env.VITE_VARIANT || env.VITE_VARIANT) === 'b' ? 'b' : 'a';
+export default defineConfig(() => {
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
     },
-    define: {
-      'import.meta.env.VITE_VARIANT': JSON.stringify(variant),
-    },
-    plugins: [react(), variantHead(variant)],
+    plugins: [react(), fontsHead()],
     // No `define` for GEMINI_API_KEY.
     //
     // The scaffold injected it into the client bundle, where `define` performs

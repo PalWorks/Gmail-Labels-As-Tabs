@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --ssr entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
-    "build:a": "VITE_VARIANT=a npm run build",
-    "build:b": "VITE_VARIANT=b npm run build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },

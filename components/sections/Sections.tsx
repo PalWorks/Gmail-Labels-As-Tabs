@@ -95,6 +95,9 @@ export const FeaturesSection: React.FC = () => (
           </li>
         ))}
       </ul>
+      <p className="section-more">
+        <Link to="/gmail-search-operators/">Every Gmail search operator, with the searches worth keeping as a tab</Link>
+      </p>
     </div>
   </section>
 );

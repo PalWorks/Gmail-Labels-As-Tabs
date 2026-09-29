@@ -275,6 +275,8 @@ ${FAQ_ITEMS.map((q) => `- ${q.question} ${q.answer}`).join('\n')}
 
 ${link(byKind.home, 'what it does, the interactive tour, how it works, and the FAQ')}
 ${link(byKind.guide, "how to get custom tabs in Gmail: category tabs, Multiple Inboxes, bookmarked searches and this extension compared")}
+${link(byKind.operators, 'every Gmail search operator with an example, and the searches worth keeping as a tab')}
+${link(byKind.about, 'who makes it, what it promises, and how it is kept working when Gmail changes')}
 ${link(byKind.privacy, 'what is stored, what is never read, and every outbound request')}
 ${link(byKind.changelog, 'what each release changed')}
 ${link(byKind.contact, 'support and feedback')}

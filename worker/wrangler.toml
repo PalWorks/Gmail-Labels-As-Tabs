@@ -1,0 +1,41 @@
+# The website's contact form relay. See worker/README.md.
+name = "gmail-tabs-contact"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# The same account as the extension's feedback relay, which holds the
+# palworks.ai zone the custom domain below needs. Five accounts are reachable
+# from one login, so it is pinned rather than picked.
+account_id = "96ec2a311affbd387b884673c0e84eb8"
+
+# One public hostname and nothing else: no workers.dev, no preview URLs.
+workers_dev = false
+preview_urls = false
+routes = [
+  { pattern = "gmail-tabs-contact.palworks.ai", custom_domain = true }
+]
+
+# Secrets, set with `wrangler secret put <NAME>` and never committed:
+#   RESEND_API_KEY     send-only Resend key, scoped to the palworks.ai domain
+#   CHALLENGE_SECRET   random; signs challenges and names IPs in counters
+[vars]
+CONTACT_FROM = "Gmail Labels as Tabs <support.gmailtabs@palworks.ai>"
+CONTACT_TO = "support@palworks.ai"
+DAILY_PER_IP = "10"
+DAILY_GLOBAL = "200"
+
+# Rate-limit counters and used challenge ids only, every key expiring within
+# 26 hours. No message content is ever written here.
+[[kv_namespaces]]
+binding = "COUNTERS"
+id = "9fabed59f8304d498d8c5733fba35851"
+
+# Burst limit per IP, per data centre, approximate by design. `period` may
+# only be 10 or 60. The daily caps in KV are the real ceiling.
+[[ratelimits]]
+name = "BURST"
+namespace_id = "2001"
+simple = { limit = 5, period = 60 }
+
+[observability]
+enabled = true

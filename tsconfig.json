@@ -26,5 +26,11 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "worker",
+    "node_modules",
+    "dist",
+    "dist-ssr"
+  ]
 }

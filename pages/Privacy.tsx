@@ -24,9 +24,9 @@ export const Privacy: React.FC = () => (
               has no database, no account, no analytics and no advertising, and it never sends your
               mail, your contacts, your label names or your tab names anywhere. The one thing about
               your mail that can leave is a sender's domain, and only if you turn website icons on
-              (section 4c). The one server we
-              run is the feedback relay described in section 4, which is reached only when you
-              press Send and which stores nothing.
+              (section 4c). The one server of ours the extension ever talks to is the feedback
+              relay described in section 4, which is reached only when you press Send and which
+              stores nothing.
             </p>
             <p>
               Exactly three things can ever leave your browser, and all three are listed in full in
@@ -134,10 +134,10 @@ export const Privacy: React.FC = () => (
               and cannot trigger it.
             </p>
 
-            <h2>7. This website</h2>
+            <h2 id="website">7. This website</h2>
             <p>
-              This marketing site is measured, and the extension is not. The distinction matters,
-              so here is exactly what runs on the pages you are reading now:
+              This site is measured, and the extension is not. The distinction matters, so here is
+              exactly what runs on the pages you are reading now:
             </p>
             <ul>
               <li>
@@ -146,25 +146,54 @@ export const Privacy: React.FC = () => (
               <li>
                 <strong>Microsoft Clarity</strong>, which records how pages are used: clicks,
                 scrolling and mouse movement, replayed as anonymised sessions and aggregated into
-                heatmaps. It is a usability tool, and we use it to see which parts of this page
-                people give up on.
+                heatmaps. It is a usability tool, and we use it to see which parts of a page people
+                give up on.
               </li>
               <li>
-                <strong>A Tally form</strong> on the contact page, which sends nothing
-                until you submit it.
+                <strong>Google Fonts</strong>, which serves the typefaces, so your browser asks
+                Google for them as it would for any site that uses them.
               </li>
             </ul>
+            <p>
+              <strong>The contact form.</strong> When you press Send on the{' '}
+              <Link to="/contact/">contact page</Link>, your name, email address, topic, subject,
+              message and any files you attached go to our own relay at{' '}
+              <code>gmail-tabs-contact.palworks.ai</code>, which runs on Cloudflare. The relay
+              checks the message and passes it to Resend, an email delivery service, which
+              delivers it to our support mailbox, <code>support@palworks.ai</code>. Your address is
+              used as the reply address, so that we can answer you, and for nothing else: we send
+              no newsletter and add you to no list. The relay stores none of it. To limit abuse it
+              keeps a count of messages per network for up to a day, under a keyed hash of your IP
+              address rather than the address itself, and Cloudflare sees the IP address as it
+              does for any site it serves. Resend keeps a copy of sent messages for a limited
+              period under{' '}
+              <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">its privacy policy</a>.
+              We keep your message in the support mailbox for as long as it takes to deal with it,
+              and delete it when you ask.
+            </p>
+            <p>
+              Before you press Send, the form does a small amount of work in your browser to prove
+              it is not an automated script. That work involves no tracking, no cookie and no
+              third-party service.
+            </p>
             <p>
               None of this is in the extension. The extension contains no analytics, no session
               recording and no third-party script of any kind. If you install it and never visit
               this site, nothing on this list ever runs.
             </p>
 
-            <h2>8. Children</h2>
+            <h2>8. Your data, and your rights</h2>
             <p>
-              The extension is not directed at children under 13 and we knowingly collect nothing
-              from them. Since we collect no personal data at all except feedback you deliberately
-              send us, there is nothing held about any user to request or delete.
+              We hold personal data only when you send it to us: a feedback message from inside the
+              extension, or a message through the contact form. You can ask us what we hold, ask us
+              to correct it, or ask us to delete it, by writing to{' '}
+              <a href="mailto:support@palworks.ai">support@palworks.ai</a>. Everything else the
+              extension keeps is in your own browser, where you can see it, export it or delete it
+              from the extension's Settings page, and removing the extension removes it.
+            </p>
+            <p>
+              The extension and this site are not directed at children under 13, and we knowingly
+              collect nothing from them.
             </p>
 
             <h2>9. Changes to this policy</h2>
@@ -176,8 +205,8 @@ export const Privacy: React.FC = () => (
 
             <h2>Contact</h2>
             <p>
-              Questions, corrections or a deletion request: use the Support &amp; Feedback page
-              inside the extension, write to <a href="mailto:support@palworks.ai">support@palworks.ai</a>,
+              PalWorks publishes the extension and this site. Questions, corrections or a
+              deletion request: use the Support &amp; Feedback page inside the extension, write to <a href="mailto:support@palworks.ai">support@palworks.ai</a>,
               or get in touch <Link to="/contact/">here</Link>.
             </p>
   </DocPage>
