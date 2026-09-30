@@ -32,7 +32,7 @@ const DIST = resolve(ROOT, 'dist');
 const SSR = resolve(ROOT, 'dist-ssr', 'entry-server.js');
 
 const server = await import(pathToFileURL(SSR).href);
-const { render, ROUTES, graphFor, site, FAQ_ITEMS, LIVE_FEATURES, UPCOMING_FEATURES, HOWTO_STEPS, HOWTO_TITLE } = server;
+const { render, ROUTES, graphFor, site, FAQ_ITEMS, LIVE_FEATURES, UPCOMING_FEATURES, HOWTO_STEPS, HOWTO_TITLE, VIDEO, VIDEO_EMBED_URL, VIDEO_WATCH_URL, watchAt, clock } = server;
 
 const template = readFileSync(resolve(DIST, 'index.html'), 'utf8');
 if (!template.includes('<!--HEAD:START-->') || !template.includes('<!--APP-->')) {
@@ -209,14 +209,21 @@ for (const route of ROUTES) {
 // ---------------------------------------------------------------------------
 
 {
-  const { SCREENSHOTS } = server;
+  const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const urls = ROUTES.map((r) => {
     const images =
       r.kind === 'home'
-        ? // Only the capture the homepage shows: an image sitemap lists images on the page.
-          SCREENSHOTS.slice(0, 1).map(
-            (s) => `\n    <image:image><image:loc>${site.url(s.file)}</image:loc></image:image>`
-          ).join('')
+        ? // What the homepage shows: the video's poster, and the video itself.
+          `\n    <image:image><image:loc>${site.url(VIDEO.poster + '.jpg')}</image:loc></image:image>` +
+          `\n    <video:video>
+      <video:thumbnail_loc>${site.url(VIDEO.poster + '.jpg')}</video:thumbnail_loc>
+      <video:title>${esc(VIDEO.title)}</video:title>
+      <video:description>${esc(VIDEO.description)}</video:description>
+      <video:player_loc>${VIDEO_EMBED_URL}</video:player_loc>
+      <video:duration>${VIDEO.seconds}</video:duration>
+      <video:publication_date>${VIDEO.uploadDate}</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>`
         : '';
     return `  <url>
     <loc>${site.url(r.path)}</loc>
@@ -228,7 +235,7 @@ for (const route of ROUTES) {
   writeFileSync(
     resolve(DIST, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
 ${urls.join('\n')}
 </urlset>
 `
@@ -258,6 +265,7 @@ The extension runs only on mail.google.com. It reads label names and unread coun
 - Source code: ${site.REPO_URL}
 - Version in the store: ${site.LIVE_VERSION}
 - Support: ${site.SUPPORT_EMAIL}
+- Demo video (${clock(VIDEO.seconds)}, YouTube): ${VIDEO_WATCH_URL}
 
 **Features in version ${site.LIVE_VERSION}.**
 
@@ -266,6 +274,10 @@ ${upcoming}
 **${HOWTO_TITLE}.**
 
 ${HOWTO_STEPS.map((s, i) => `${i + 1}. ${s.name}. ${s.text}`).join('\n')}
+
+**What the demo video shows, by chapter.**
+
+${VIDEO.chapters.map((c) => `- [${clock(c.start)}](${watchAt(c.start)}) ${c.title}`).join('\n')}
 
 **Questions people ask.**
 
@@ -280,6 +292,7 @@ ${link(byKind.about, 'who makes it, what it promises, and how it is kept working
 ${link(byKind.privacy, 'what is stored, what is never read, and every outbound request')}
 ${link(byKind.changelog, 'what each release changed')}
 ${link(byKind.contact, 'support and feedback')}
+- [Demo video](${VIDEO_WATCH_URL}): ${VIDEO.description}
 - [Full text of every page](${site.url('llms-full.txt')}): this site as plain markdown
 - [Chrome Web Store listing](${site.STORE_URL}): install, and the store's own description
 - [Source code](${site.REPO_URL}): the repository, with its changelog, security notes and tests

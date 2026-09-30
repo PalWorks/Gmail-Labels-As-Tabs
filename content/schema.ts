@@ -42,6 +42,7 @@ import { GUIDE_SECTIONS, GUIDE_SUMMARY, GUIDE_TITLE, GUIDE_UPDATED } from './gui
 import { ROUTES, RouteMeta } from './routes';
 import { OPERATOR_FAQ, OPERATOR_GROUPS, OPERATORS_SUMMARY, OPERATORS_TITLE, OPERATORS_UPDATED } from './operators';
 import { RELEASES, isoDate } from './releases';
+import { VIDEO, VIDEO_EMBED_URL, VIDEO_WATCH_URL, watchAt } from './video';
 
 type Node = Record<string, unknown>;
 
@@ -49,6 +50,7 @@ const ORG_ID = SITE_URL + '#organization';
 const SITE_ID = SITE_URL + '#website';
 const APP_ID = SITE_URL + '#software';
 const SOURCE_ID = SITE_URL + '#source';
+const VIDEO_ID = SITE_URL + '#video';
 
 /** Real captures of the extension in Gmail, message content blurred. */
 export const SCREENSHOTS: readonly { file: string; caption: string; width: number; height: number }[] = [
@@ -175,7 +177,7 @@ function webpage(route: RouteMeta): Node {
     dateModified: route.updated,
     ...(route.kind === 'home' ? {} : { breadcrumb: { '@id': url(route.path) + '#breadcrumb' } }),
     primaryImageOfPage: { '@type': 'ImageObject', url: url('og-image.jpg') },
-    ...(route.kind === 'home' ? { mainEntity: { '@id': APP_ID } } : {}),
+    ...(route.kind === 'home' ? { mainEntity: { '@id': APP_ID }, video: { '@id': VIDEO_ID } } : {}),
     ...(route.kind === 'guide' || route.kind === 'operators' ? { mainEntity: { '@id': url(route.path) + '#article' } } : {}),
     ...(route.kind === 'about' ? { mainEntity: { '@id': ORG_ID } } : {}),
   };
@@ -265,6 +267,39 @@ function faqNode(route: RouteMeta, items: readonly { question: string; answer: s
   };
 }
 
+/**
+ * The product video. The chapters are Clips, which is what lets an answer
+ * engine or Google's key moments point at the part that answers a question.
+ * There is no contentUrl: YouTube serves the file, and only the player is ours
+ * to name.
+ */
+function videoObject(route: RouteMeta): Node {
+  return {
+    '@type': 'VideoObject',
+    '@id': VIDEO_ID,
+    name: VIDEO.title,
+    description: VIDEO.description,
+    thumbnailUrl: [url(VIDEO.poster + '.jpg'), `https://i.ytimg.com/vi/${VIDEO.id}/maxresdefault.jpg`],
+    uploadDate: VIDEO.uploadDate,
+    duration: VIDEO.duration,
+    embedUrl: VIDEO_EMBED_URL,
+    url: VIDEO_WATCH_URL,
+    inLanguage: 'en',
+    isFamilyFriendly: true,
+    isPartOf: { '@id': url(route.path) + '#webpage' },
+    about: { '@id': APP_ID },
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    hasPart: VIDEO.chapters.map((c, i) => ({
+      '@type': 'Clip',
+      name: c.title,
+      startOffset: c.start,
+      endOffset: VIDEO.chapters[i + 1]?.start ?? VIDEO.seconds,
+      url: watchAt(c.start),
+    })),
+  };
+}
+
 /** Each release the changelog shows, as a version of the one product. */
 function releaseList(route: RouteMeta): Node {
   return {
@@ -299,7 +334,7 @@ export function graphFor(route: RouteMeta): Node {
   const nodes: Node[] = [organization(), website(), software(), sourceCode(), webpage(route)];
   // A homepage trail would be one item long, which says nothing.
   if (route.kind !== 'home') nodes.push(breadcrumbs(route));
-  if (route.kind === 'home') nodes.push(faqPage(route), howTo(route));
+  if (route.kind === 'home') nodes.push(faqPage(route), howTo(route), videoObject(route));
   if (route.kind === 'guide') nodes.push(guideArticle(route));
   if (route.kind === 'operators') nodes.push(operatorsArticle(route), faqNode(route, OPERATOR_FAQ));
   if (route.kind === 'changelog') nodes.push(releaseList(route));

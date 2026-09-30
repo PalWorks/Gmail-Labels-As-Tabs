@@ -17,7 +17,8 @@ import { FAQ_ITEMS } from '../../content/faq';
 import { GUIDE_COMPARISON } from '../../content/guide';
 import { LIVE_VERSION, NEXT_VERSION, REPO_URL, isLive } from '../../content/site';
 import { storeLink } from '../../lib/links';
-import { SCREENSHOTS } from '../../content/schema';
+import { VIDEO, clock, watchAt } from '../../content/video';
+import { VideoPlayer } from '../VideoPlayer';
 
 export const SectionHead: React.FC<{ id?: string; kicker: string; title: string; lede?: React.ReactNode }> = ({
   id,
@@ -184,29 +185,34 @@ export const CompareTable: React.FC<{ caption?: string }> = ({ caption }) => (
   </div>
 );
 
-/** A real capture of the extension in Gmail, message content blurred. */
-export const ProductShot: React.FC = () => {
-  const shot = SCREENSHOTS[0];
-  const base = import.meta.env.BASE_URL + shot.file.replace(/\.jpg$/, '');
-  return (
-    <section className="section section--shot" id="in-gmail" aria-labelledby="in-gmail-title">
-      <div className="wrap">
-        <SectionHead
-          id="in-gmail"
-          kicker="In Gmail"
-          title="What it looks like in a real inbox"
-          lede="Labels and a saved search above the category tabs, with their unread counts. Message content is blurred."
-        />
-        <figure className="shot">
-          <picture>
-            <source srcSet={`${base}.webp`} type="image/webp" />
-            <img src={`${base}.jpg`} alt={shot.caption} width={shot.width} height={shot.height} loading="lazy" decoding="async" />
-          </picture>
-        </figure>
+/** The product video: the real extension in a real Gmail, message content blurred. */
+export const VideoSection: React.FC = () => (
+  <section className="section section--video" id="video" aria-labelledby="video-title">
+    <div className="wrap">
+      <SectionHead
+        id="video"
+        kicker="Watch it"
+        title="90 seconds in a real inbox"
+        lede="Recorded from the extension in a signed-in Gmail. Message content is blurred, and there is no sound: the captions tell the story."
+      />
+      <div className="video-layout">
+        <VideoPlayer />
+        <ol className="chapters" aria-label="Chapters">
+          {VIDEO.chapters.map((c) => (
+            <li key={c.start}>
+              <a href={watchAt(c.start)} target="_blank" rel="noopener">
+                <time className="chapters__at" dateTime={`PT${c.start}S`}>
+                  {clock(c.start)}
+                </time>
+                <span>{c.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export const CompareSection: React.FC = () => (
   <section className="section section--compare" id="compare" aria-labelledby="compare-title">

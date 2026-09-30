@@ -6,7 +6,7 @@ import { DocPage } from '../components/DocPage';
 // SECURITY.md and DECISIONS.md in the extension repository, and the version
 // and date are updated by hand so the page never claims to be fresher than
 // the last time somebody actually read it.
-const LAST_UPDATED = '29 September 2026';
+const LAST_UPDATED = '30 September 2026';
 const COVERS_VERSION = '1.8.0';
 
 export const Privacy: React.FC = () => (
@@ -152,6 +152,13 @@ export const Privacy: React.FC = () => (
               <li>
                 <strong>Google Fonts</strong>, which serves the typefaces, so your browser asks
                 Google for them as it would for any site that uses them.
+              </li>
+              <li>
+                <strong>YouTube</strong>, only if you press play on the homepage video. Until then
+                the page shows a picture we host, and nothing is fetched from YouTube. Pressing play
+                loads YouTube's privacy-enhanced player, from <code>youtube-nocookie.com</code>,
+                under{' '}
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>.
               </li>
             </ul>
             <p>

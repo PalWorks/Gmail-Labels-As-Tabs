@@ -649,18 +649,104 @@ main:focus {
   }
 }
 
-/* A real capture */
+/* The product video */
 
-.shot {
+.video-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.video {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  background: var(--ink);
   box-shadow: 0 30px 60px -30px rgba(14, 23, 38, 0.35);
 }
 
-.shot img {
+.video iframe,
+.video img {
+  display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+.video__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  padding-left: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 12px 30px -8px rgba(14, 23, 38, 0.5);
+  transform: translate(-50%, -50%);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.video--poster:hover .video__play,
+.video--poster:focus-visible .video__play {
+  background: var(--accent-hover);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.video__length {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(14, 23, 38, 0.82);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.chapters {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.chapters a {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.chapters a:hover span {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.chapters__at {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .video-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Comparison */

@@ -40,7 +40,7 @@ export const ROUTES: readonly RouteMeta[] = [
     description:
       'Turn Gmail labels and saved searches into tabs above your inbox. Live unread counts, tab colours, one bar per account. Free, open source, and it never reads your mail.',
     crumb: 'Home',
-    updated: '2026-09-29',
+    updated: '2026-09-30',
     changefreq: 'weekly',
     priority: 1,
   },
@@ -93,7 +93,7 @@ export const ROUTES: readonly RouteMeta[] = [
     description:
       'What the extension stores, what it never reads, the only three things that can leave your browser, and what the contact form sends.',
     crumb: 'Privacy policy',
-    updated: '2026-09-29',
+    updated: '2026-09-30',
     changefreq: 'monthly',
     priority: 0.5,
   },

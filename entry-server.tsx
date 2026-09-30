@@ -26,6 +26,7 @@ export function render(pathname: string): string {
 
 export { ROUTES } from './content/routes';
 export { graphFor, SCREENSHOTS } from './content/schema';
+export { VIDEO, VIDEO_EMBED_URL, VIDEO_WATCH_URL, watchAt, clock } from './content/video';
 export * as site from './content/site';
 export { FAQ_ITEMS } from './content/faq';
 export { FEATURES, LIVE_FEATURES, UPCOMING_FEATURES } from './content/features';

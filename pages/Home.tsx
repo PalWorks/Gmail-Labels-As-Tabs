@@ -8,9 +8,9 @@ import {
   FinalCta,
   HowItWorks,
   PrivacySection,
-  ProductShot,
   TourSection,
   UpcomingSection,
+  VideoSection,
 } from '../components/sections/Sections';
 
 export const Home: React.FC = () => (
@@ -21,7 +21,7 @@ export const Home: React.FC = () => (
     <FeaturesSection />
     <UpcomingSection />
     <HowItWorks />
-    <ProductShot />
+    <VideoSection />
     <CompareSection />
     <PrivacySection />
     <FaqSection />
