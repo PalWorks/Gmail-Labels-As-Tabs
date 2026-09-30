@@ -22,13 +22,18 @@ export type Release = {
 
 const ALL_RELEASES: Release[] = [
   {
-    version: 'v1.8.0',
-    release: '1.8.0',
+    version: 'v1.8.1',
+    release: '1.8.1',
     date: '30 September 2026',
     tag: 'Sender icons & Gmail menu',
     summary:
-      'Add a label from Gmail\'s own menu, see who mail is from at a glance, and no reload after installing. Carries everything built since 1.6.2.',
+      'Add a label from Gmail\'s own menu, see who mail is from at a glance, and no reload after installing. Carries everything built since 1.6.2, and the fixes from a full audit before release.',
     points: [
+      {
+        title: 'Cleanup templates that act on Gmail\'s categories',
+        body:
+          'Clean Promotions, Quiet Social and Clear Updates now act on Gmail\'s own categories. Archive and mark-as-read rules keep making progress on large mailboxes. Regenerate your script to get the fixes.',
+      },
       {
         title: '"Show as Tabs" in Gmail\'s label menu',
         body:

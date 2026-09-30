@@ -75,6 +75,7 @@ function json(body: unknown, status: number, origin: string | null): Response {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+const SEND_TIMEOUT_MS = 8000;
 
 /** Increment a daily counter; true when it was already at the cap. Fails open if KV is down. */
 async function overCap(env: Env, key: string, cap: number): Promise<boolean> {
@@ -160,19 +161,30 @@ async function handleContact(request: Request, env: Env, origin: string | null):
   const country = request.headers.get('cf-ipcountry') || 'unknown';
   const mail = buildEmail(checked.fields, { country, files: files.files });
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: env.CONTACT_FROM,
-      to: [env.CONTACT_TO],
-      reply_to: [checked.fields.email],
-      subject: mail.subject,
-      text: mail.text,
-      html: mail.html,
-      attachments: files.files.map((f) => ({ filename: f.filename, content: toBase64(f.bytes) })),
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: env.CONTACT_FROM,
+        to: [env.CONTACT_TO],
+        reply_to: [checked.fields.email],
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+        attachments: files.files.map((f) => ({ filename: f.filename, content: toBase64(f.bytes) })),
+      }),
+      // Resend normally answers in well under a second. Past this, say so
+      // rather than hold the visitor's form open.
+      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+    });
+  } catch (e) {
+    if (e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+      return json({ error: 'Sending took too long. Try again in a few minutes, or write to us by email.' }, 504, origin);
+    }
+    return json({ error: 'The message could not be sent just now. Try again in a few minutes, or write to us by email.' }, 502, origin);
+  }
   if (!res.ok) {
     // Never echo the provider's answer: it can name the account.
     return json({ error: 'The message could not be sent just now. Try again in a few minutes, or write to us by email.' }, 502, origin);

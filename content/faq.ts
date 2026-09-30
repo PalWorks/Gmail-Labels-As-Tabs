@@ -90,7 +90,7 @@ const ALL_FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     question: "Does it work in Edge, Brave or Firefox?",
-    answer: "It is built on Manifest V3 and published for Chrome. Chromium browsers that install from the Chrome Web Store, such as Edge, Brave and Opera, can run it. Firefox and Safari cannot."
+    answer: "It is built on Manifest V3 and published for Chrome. It is tested in Chrome, Microsoft Edge, Opera and Chromium, and other Chromium browsers that install from the Chrome Web Store, such as Brave, can run it. Firefox and Safari cannot."
   },
   {
     question: "What happens to my tabs if I uninstall it?",

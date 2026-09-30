@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Live checks against the deployed worker. Sends ONE real email to support@palworks.ai unless NO_SEND=1.
+# Live checks against the deployed worker. Sends no email unless SEND=1, which sends ONE real
+# email to support@palworks.ai and then checks that its challenge cannot be replayed.
 # RESOLVE=ip pins the hostname, for a machine whose resolver still caches the name as missing.
 set -u
 H=gmail-tabs-contact.palworks.ai
@@ -26,9 +27,11 @@ printf 'MZ\x90\x00\x01' > /tmp/claude-1000/tool.exe
 echo "exe attachment:   $(c -H "Origin: $O" "${F[@]}" -F challenge="$CH" -F solution=$SOL -F attachments=@/tmp/claude-1000/tool.exe $B/v1/contact)"
 printf '\x89PNG\r\n\x1a\n1234' > /tmp/claude-1000/fake.pdf
 echo "disguised file:   $(c -H "Origin: $O" "${F[@]}" -F challenge="$CH" -F solution=$SOL -F attachments=@/tmp/claude-1000/fake.pdf $B/v1/contact)"
-if [ "${NO_SEND:-0}" != 1 ]; then
+if [ "${SEND:-0}" = 1 ]; then
   printf '{"version":1,"tabs":[{"title":"Clients"}]}' > /tmp/claude-1000/gmail-tabs-export.json
   echo "send:             $(c -H "Origin: $O" "${F[@]}" -F challenge="$CH" -F solution=$SOL -F attachments=@/tmp/claude-1000/gmail-tabs-export.json $B/v1/contact)"
   echo "replay:           $(c -H "Origin: $O" "${F[@]}" -F challenge="$CH" -F solution=$SOL $B/v1/contact)"
+else
+  echo "send:             skipped; SEND=1 sends one real email"
 fi
 rm -f /tmp/claude-1000/tool.exe /tmp/claude-1000/fake.pdf /tmp/claude-1000/gmail-tabs-export.json

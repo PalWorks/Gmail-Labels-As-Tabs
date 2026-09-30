@@ -7,7 +7,7 @@ import { DocPage } from '../components/DocPage';
 // and date are updated by hand so the page never claims to be fresher than
 // the last time somebody actually read it.
 const LAST_UPDATED = '30 September 2026';
-const COVERS_VERSION = '1.8.0';
+const COVERS_VERSION = '1.8.1';
 
 export const Privacy: React.FC = () => (
   <DocPage
@@ -26,7 +26,7 @@ export const Privacy: React.FC = () => (
               your mail that can leave is a sender's domain, and only if you turn website icons on
               (section 4c). The one server of ours the extension ever talks to is the feedback
               relay described in section 4, which is reached only when you press Send and which
-              stores nothing.
+              stores none of your message.
             </p>
             <p>
               Exactly three things can ever leave your browser, and all three are listed in full in
@@ -82,9 +82,16 @@ export const Privacy: React.FC = () => (
               category you picked, and the reply address only if you typed one. A tick box, on by
               default and clearly labelled, also attaches the extension version, your browser build,
               and the number of tabs, rules and accounts you have. Never label names, tab names,
-              contacts or mail. It is sent to our own relay at
-              {' '}<code>gmail-tabs-feedback.sunmooncal.workers.dev</code>, which forwards it to our
-              support mailbox and stores nothing. Nothing is sent if you do not press Send.
+              contacts or mail. Untick the box and none of that is attached. It is sent to our own
+              relay at{' '}<code>gmail-tabs-feedback.sunmooncal.workers.dev</code>, which runs on
+              Cloudflare. The relay passes it to Resend, an email delivery service, which delivers
+              it to our support mailbox, <code>support@palworks.ai</code>. The relay stores no
+              message content. To limit abuse it keeps a count of messages per network for up to a
+              day, under a keyed hash of your IP address rather than the address itself, and
+              Cloudflare sees the IP address as it does for any site it serves. Resend keeps a copy
+              of sent messages for a limited period under{' '}
+              <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">its privacy policy</a>.
+              Nothing is sent if you do not press Send.
             </p>
             <p>
               <strong>b. A page that opens after you uninstall.</strong> When you remove the

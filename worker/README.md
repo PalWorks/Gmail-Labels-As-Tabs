@@ -59,10 +59,13 @@ confirmation, since an auto-reply to a typed-in address is a way to mail strange
 npm test               # logic tests, plain Node
 npm run typecheck
 npx wrangler deploy
-bash test/live.sh      # against the deployed worker; sends ONE real email. NO_SEND=1 to skip it
+bash test/live.sh      # against the deployed worker; sends no email
+SEND=1 bash test/live.sh   # the same, plus ONE real email to support@palworks.ai and a replay check
 ```
 
-`test/live.sh` checks every refusal above against the live Worker. On a machine whose DNS
+`test/live.sh` checks every refusal above against the live Worker. It sends nothing unless
+`SEND=1` is set, so a run by habit or in a loop cannot fill the support inbox. The Resend
+call times out after 8 seconds and answers `504`. On a machine whose DNS
 still caches the name as missing, pin it: `RESOLVE=$(dig +short gmail-tabs-contact.palworks.ai @1.1.1.1 | head -1) bash test/live.sh`.
 
 ## Rotating a secret
