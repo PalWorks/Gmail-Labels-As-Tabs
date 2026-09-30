@@ -24,7 +24,7 @@ const ALL_RELEASES: Release[] = [
   {
     version: 'v1.8.0',
     release: '1.8.0',
-    date: '29 September 2026',
+    date: '30 September 2026',
     tag: 'Sender icons & Gmail menu',
     summary:
       'Add a label from Gmail\'s own menu, see who mail is from at a glance, and no reload after installing. Carries everything built since 1.6.2.',
