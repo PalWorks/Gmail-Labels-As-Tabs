@@ -22,6 +22,40 @@ export type Release = {
 
 const ALL_RELEASES: Release[] = [
   {
+    version: 'v1.9.0',
+    release: '1.9.0',
+    date: '26 November 2026',
+    tag: 'Counts that match Gmail',
+    summary:
+      'Unread counts now match Gmail\'s own, Settings open on the account you came from, and four more tab colours. Built from the first feedback users sent.',
+    points: [
+      {
+        title: 'Unread counts match Gmail',
+        body:
+          'Each tab shows the number Gmail shows for the same view in its sidebar, and follows it as it changes. The inbox no longer counts every category when Gmail shows Primary, labels inside other labels count correctly, and counts work in every language.',
+      },
+      {
+        title: 'Settings open on your account',
+        body:
+          'With several Gmail accounts, opening Settings from one of them now shows that account\'s tabs and rules, not the first account\'s.',
+      },
+      {
+        title: 'Four more colours',
+        body: 'Brown, gray, indigo and lime, twelve in all.',
+      },
+      {
+        title: 'A rating ask, once',
+        body:
+          'After a week of use the tab bar asks whether you would like to rate the extension. Not now puts it away for a month; Don\'t ask again ends it.',
+      },
+      {
+        title: 'The goodbye page is ours',
+        body:
+          'Removing the extension opens a one-question page on this website instead of a third-party form, so an answer reaches us and no one else.',
+      },
+    ],
+  },
+  {
     version: 'v1.8.1',
     release: '1.8.1',
     date: '30 September 2026',

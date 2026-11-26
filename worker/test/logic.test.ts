@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  validateUninstall,
+  buildUninstallEmail,
   LIMITS,
   checkFiles,
   isAllowedOrigin,
@@ -92,4 +94,29 @@ test('the email escapes what the visitor typed', () => {
   );
   assert.ok(!m.html.includes('<script>'));
   assert.ok(m.subject.startsWith('[Gmail Tabs website] Question: '));
+});
+
+test('uninstall survey: only the reason is required, the rest is checked', () => {
+  assert.deepEqual(validateUninstall({ reason: 'nonsense' }), { field: 'reason', error: 'Choose the reason closest to yours.' });
+  const ok = validateUninstall({ reason: 'conflict', otherExtension: 'Sortd\nBcc: x@y.z', version: '1.9.0' });
+  assert.ok('fields' in ok);
+  assert.equal(ok.fields.otherExtension, 'Sortd Bcc: x@y.z');
+  assert.equal(ok.fields.version, '1.9.0');
+  assert.equal(ok.fields.email, '');
+  assert.deepEqual(validateUninstall({ reason: 'other', email: 'not-an-address' }), {
+    field: 'email',
+    error: 'That email address does not look complete.',
+  });
+  const v = validateUninstall({ reason: 'slow', version: '<script>' });
+  assert.ok('fields' in v && v.fields.version === '');
+  const links = validateUninstall({ reason: 'other', details: 'http://a http://b http://c http://d' });
+  assert.equal('field' in links && links.field, 'details');
+});
+
+test('uninstall survey: the email escapes what the visitor typed', () => {
+  const checked = validateUninstall({ reason: 'broken', details: '<img src=x onerror=alert(1)>' });
+  assert.ok('fields' in checked);
+  const mail = buildUninstallEmail(checked.fields, { country: 'IN' });
+  assert.ok(!mail.html.includes('<img'));
+  assert.match(mail.subject, /^\[Gmail Tabs uninstall\] It stopped working/);
 });

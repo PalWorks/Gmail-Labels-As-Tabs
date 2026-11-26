@@ -204,6 +204,24 @@ for (const route of ROUTES) {
   writeFileSync(resolve(DIST, '404.html'), page(route, render('/404/'), { noindex: true }));
 }
 
+// Chrome opens this page after an uninstall. Built, but kept out of ROUTES,
+// so it is in no sitemap, no llms.txt and no search index.
+{
+  const route = {
+    path: 'uninstalled/',
+    kind: 'contact',
+    title: `Removed | ${site.SHORT_NAME}`,
+    description: 'Gmail Labels as Tabs is removed. One optional question about why.',
+    updated: '',
+  };
+  const html = render('/uninstalled/');
+  const h1s = (html.match(/<h1\b/g) || []).length;
+  if (h1s !== 1) problems.push(`uninstalled/: ${h1s} h1 elements, expected 1`);
+  const file = resolve(DIST, 'uninstalled', 'index.html');
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, page(route, html, { noindex: true }));
+}
+
 // ---------------------------------------------------------------------------
 // sitemap.xml
 // ---------------------------------------------------------------------------

@@ -6,8 +6,8 @@ import { DocPage } from '../components/DocPage';
 // SECURITY.md and DECISIONS.md in the extension repository, and the version
 // and date are updated by hand so the page never claims to be fresher than
 // the last time somebody actually read it.
-const LAST_UPDATED = '30 September 2026';
-const COVERS_VERSION = '1.8.1';
+const LAST_UPDATED = '26 November 2026';
+const COVERS_VERSION = '1.9.0';
 
 export const Privacy: React.FC = () => (
   <DocPage
@@ -93,15 +93,19 @@ export const Privacy: React.FC = () => (
               <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">its privacy policy</a>.
               Nothing is sent if you do not press Send.
             </p>
-            <p>
+            <p id="uninstall">
               <strong>b. A page that opens after you uninstall.</strong> When you remove the
-              extension, Chrome opens a short feedback form hosted by Tally at
-              {' '}<code>tally.so</code>, so we can learn why people leave. The extension sends
-              nothing itself: Chrome navigates you to a plain form link that carries no email
-              address, no settings and no identifier, so Tally learns only that somebody
-              uninstalled, never who. Answering is optional and closing the tab sends nothing. If
-              you do fill it in, Tally processes it under
-              {' '}<a href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener noreferrer">their privacy policy</a>.
+              extension, Chrome opens a page on this website,{' '}
+              <Link to="/uninstalled/">/uninstalled/</Link>, with one optional question: why you
+              left. The extension sends nothing itself. Chrome navigates you to the page, and its
+              address carries the extension version and nothing else: no email address, no settings,
+              no identifier. Closing the tab sends nothing. If you answer, your choice, any words you
+              add and the address you give, if you give one, go through the same relay as this
+              site's contact form (section 7) to our support mailbox, and nowhere else. Version
+              1.8.1 and earlier opened a form hosted by Tally at <code>tally.so</code> instead,
+              which processed answers under{' '}
+              <a href="https://tally.so/help/privacy-policy" target="_blank" rel="noopener noreferrer">its privacy policy</a>;
+              1.9.0 replaced it so the answer no longer passes through a third party.
             </p>
             <p>
               <strong>c. Website icons, only if you turn them on.</strong> Sender icons, added in

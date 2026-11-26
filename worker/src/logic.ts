@@ -292,3 +292,77 @@ export function toBase64(bytes: Uint8Array): string {
   for (let i = 0; i < bytes.length; i += chunk) s += String.fromCharCode(...bytes.subarray(i, i + chunk));
   return btoa(s);
 }
+
+// ---------------------------------------------------------------------------
+// The uninstall survey
+// ---------------------------------------------------------------------------
+//
+// Chrome opens /uninstalled/ on the site when someone removes the extension.
+// Everything on it is optional except the reason, and nothing identifies the
+// person unless they choose to leave an address. Replaced a Tally form in
+// 1.9.0, so the answer reaches us without passing through a third party.
+
+export const UNINSTALL_REASONS = {
+  broken: 'It stopped working or broke something in Gmail',
+  conflict: 'It clashed with another extension',
+  slow: 'It made Gmail slower',
+  missing: 'It did not do something I needed',
+  'not-needed': 'I did not need it after all',
+  temporary: 'Removing it for now; I will be back',
+  other: 'Something else',
+} as const;
+export type UninstallReason = keyof typeof UNINSTALL_REASONS;
+
+export const UNINSTALL_LIMITS = {
+  detailsChars: 2000,
+  otherExtensionChars: 100,
+  maxLinks: 3,
+  requestBytes: 32 * 1024,
+} as const;
+
+export interface UninstallFields {
+  reason: UninstallReason;
+  details: string;
+  otherExtension: string;
+  email: string;
+  version: string;
+}
+
+export type UninstallError = { field: keyof UninstallFields; error: string };
+
+export function validateUninstall(raw: Record<string, unknown>): { fields: UninstallFields } | UninstallError {
+  const reasonRaw = oneLine(raw.reason, 20);
+  if (!(reasonRaw in UNINSTALL_REASONS)) return { field: 'reason', error: 'Choose the reason closest to yours.' };
+  const details = multiLine(raw.details, UNINSTALL_LIMITS.detailsChars);
+  if (countLinks(details) > UNINSTALL_LIMITS.maxLinks) {
+    return { field: 'details', error: `Include at most ${UNINSTALL_LIMITS.maxLinks} links.` };
+  }
+  const otherExtension = oneLine(raw.otherExtension, UNINSTALL_LIMITS.otherExtensionChars);
+  const email = oneLine(raw.email, LIMITS.emailChars);
+  if (email && !isPlausibleEmail(email)) return { field: 'email', error: 'That email address does not look complete.' };
+  const versionRaw = oneLine(raw.version, 20);
+  const version = /^\d{1,3}(\.\d{1,5}){0,3}$/.test(versionRaw) ? versionRaw : '';
+  return { fields: { reason: reasonRaw as UninstallReason, details, otherExtension, email, version } };
+}
+
+export function buildUninstallEmail(f: UninstallFields, meta: { country: string }) {
+  const reason = UNINSTALL_REASONS[f.reason];
+  const subject = `[Gmail Tabs uninstall] ${reason}${f.otherExtension ? `: ${f.otherExtension}` : ''}`;
+  const lines = [
+    `Reason: ${reason}`,
+    f.otherExtension ? `Other extension: ${f.otherExtension}` : null,
+    `Version: ${f.version || 'unknown'}`,
+    `Reply to: ${f.email || 'not given'}`,
+    `Country: ${meta.country}`,
+    '',
+    f.details || '(no details)',
+  ].filter((l): l is string => l !== null);
+  const html = `<h2>Gmail Labels as Tabs: uninstall survey</h2>
+<p><strong>Reason:</strong> ${escapeHtml(reason)}<br />
+${f.otherExtension ? `<strong>Other extension:</strong> ${escapeHtml(f.otherExtension)}<br />\n` : ''}<strong>Version:</strong> ${escapeHtml(f.version || 'unknown')}<br />
+<strong>Reply to:</strong> ${f.email ? escapeHtml(f.email) : 'not given'}<br />
+<strong>Country:</strong> ${escapeHtml(meta.country)}</p>
+<hr />
+<p style="white-space:pre-wrap">${escapeHtml(f.details || '(no details)')}</p>`;
+  return { subject: subject.slice(0, 200), text: lines.join('\n'), html };
+}

@@ -10,6 +10,7 @@ import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { Changelog } from './pages/Changelog';
 import { Contact } from './pages/Contact';
+import { Uninstalled } from './pages/Uninstalled';
 import { NotFound } from './pages/NotFound';
 import { usePageMeta } from './lib/usePageMeta';
 
@@ -68,6 +69,7 @@ export const App: React.FC = () => (
         <Route path="/terms/" element={<Terms />} />
         <Route path="/changelog/" element={<Changelog />} />
         <Route path="/contact/" element={<Contact />} />
+        <Route path="/uninstalled/" element={<Uninstalled />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </main>

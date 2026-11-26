@@ -41,7 +41,7 @@ export const SUPPORT_EMAIL = 'support@palworks.ai';
 export const LIVE_VERSION = '1.8.1';
 
 /** The version the next submission carries, named where upcoming work is shown. */
-export const NEXT_VERSION = '1.8.1';
+export const NEXT_VERSION = '1.9.0';
 
 /** Numeric comparison of dotted versions: 1.10.0 is newer than 1.9.0. */
 export function compareVersions(a: string, b: string): number {

@@ -49,6 +49,7 @@ it. The same step writes:
 | `llms.txt` | Curated summary for answer engines, per llmstxt.org | `content/*.ts` |
 | `llms-full.txt` | Every page's text as markdown, extracted from the rendered pages | the rendered HTML |
 | `404.html` | Served by GitHub Pages for unknown addresses, `noindex` | `pages/NotFound.tsx` |
+| `uninstalled/index.html` | The page Chrome opens after an uninstall (extension 1.9.0+), `noindex`, in no sitemap | `pages/Uninstalled.tsx` |
 | `robots.txt` | Static, in `public/`; see the caveat inside it | `public/robots.txt` |
 
 The build fails if a page has other than one `h1`, if any JSON-LD does not parse, or if an
@@ -84,6 +85,10 @@ Resend from `support.gmailtabs@palworks.ai`. The site holds no key. Spam defence
 check, size cap, honeypot, a signed and timed proof-of-work challenge, validation of every
 field and of every attachment by its bytes, burst and daily rate limits, and single-use
 challenges. Details, tests and key rotation are in [worker/README.md](worker/README.md).
+
+The uninstall survey on [/uninstalled/](pages/Uninstalled.tsx) uses the same Worker
+(`POST /v1/uninstall`) and the same defences; only the reason is required. Added
+2026-11-26T08:00:54+00:00 for extension 1.9.0, replacing a Tally form.
 
 ## Pages written for questions people ask
 

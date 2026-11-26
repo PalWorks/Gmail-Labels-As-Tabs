@@ -27,6 +27,7 @@ nothing else.
 |---|---|
 | `GET /v1/challenge` | A challenge: `issued.nonce.bits.signature` |
 | `POST /v1/contact` | `multipart/form-data`: `name`, `email`, `topic`, `subject`, `message`, up to 3 `attachments`, `challenge`, `solution`, and the honeypot `website` |
+| `POST /v1/uninstall` | `multipart/form-data`: `reason` (required, one of seven), optional `otherExtension`, `details`, `email`, `version`, plus `challenge`, `solution` and the honeypot `website`. Same defences as `/v1/contact`; no attachments. Added 2026-11-26T08:00:54+00:00 |
 | `GET /health` | `{"ok":true}` |
 
 ## Defences, in the order they run

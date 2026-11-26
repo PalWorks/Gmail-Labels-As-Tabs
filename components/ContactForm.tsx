@@ -55,7 +55,7 @@ function leadingZeroBits(hash: Uint8Array): number {
   return n;
 }
 
-async function solve(challenge: string, cancelled: () => boolean): Promise<string | null> {
+export async function solve(challenge: string, cancelled: () => boolean): Promise<string | null> {
   const [, nonce, bitsRaw] = challenge.split('.');
   const bits = Number(bitsRaw);
   for (let i = 0; ; i++) {

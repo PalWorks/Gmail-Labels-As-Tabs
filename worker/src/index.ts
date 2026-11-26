@@ -7,6 +7,9 @@
  *
  *   GET  /v1/challenge   a signed, timestamped puzzle the form must solve
  *   POST /v1/contact     the form, as multipart/form-data, with attachments
+ *   POST /v1/uninstall   the survey Chrome opens after an uninstall; the
+ *                        same defences, no attachments, every field but the
+ *                        reason optional
  *   GET  /health
  *
  * Defences, cheapest first, so a flood costs us as little as possible:
@@ -33,7 +36,10 @@
 
 import {
   LIMITS,
+  UNINSTALL_LIMITS,
   buildEmail,
+  buildUninstallEmail,
+  validateUninstall,
   checkFiles,
   ipKey,
   isAllowedOrigin,
@@ -89,23 +95,15 @@ async function overCap(env: Env, key: string, cap: number): Promise<boolean> {
   }
 }
 
-async function handleContact(request: Request, env: Env, origin: string | null): Promise<Response> {
-  const declared = Number(request.headers.get('content-length') || '0');
-  if (declared > LIMITS.requestBytes) return json({ error: 'That is too large to send. Attachments can add up to 10 MB.' }, 413, origin);
-  if (!(request.headers.get('content-type') || '').startsWith('multipart/form-data')) {
-    return json({ error: 'Unexpected request.' }, 415, origin);
-  }
+type Refusal = Response;
 
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return json({ error: 'Unexpected request.' }, 400, origin);
-  }
-
-  // A person never sees this field. Answer as if it worked, so a bot learns nothing.
-  if (String(form.get('website') || '').trim()) return json({ ok: true }, 200, origin);
-
+/**
+ * The checks every form shares, in order: challenge, rate limits, one use per
+ * challenge. Returns a refusal to send back, or null to go ahead. Field
+ * validation happens before this, so a message that only needs a correction
+ * keeps its challenge and costs no part of anyone's quota.
+ */
+async function admit(request: Request, env: Env, origin: string | null, form: FormData): Promise<Refusal | null> {
   const challenge = await verifyChallenge(env.CHALLENGE_SECRET, form.get('challenge'), form.get('solution'));
   if (!challenge.ok) {
     const message =
@@ -116,21 +114,6 @@ async function handleContact(request: Request, env: Env, origin: string | null):
           : 'The form could not be verified. Reload the page and try again.';
     return json({ error: message, retry: true }, 400, origin);
   }
-
-  // Validate before counting anything, so a message that only needs a
-  // correction keeps its challenge and costs no part of anyone's quota.
-  const raw: Record<string, unknown> = {};
-  for (const k of ['name', 'email', 'topic', 'subject', 'message']) raw[k] = form.get(k);
-  const checked = validateFields(raw);
-  if ('error' in checked) return json({ error: checked.error, field: checked.field }, 400, origin);
-
-  const uploads: { name: string; bytes: Uint8Array }[] = [];
-  for (const entry of form.getAll('attachments') as unknown as (string | File)[]) {
-    if (typeof entry === 'string') continue;
-    uploads.push({ name: entry.name, bytes: new Uint8Array(await entry.arrayBuffer()) });
-  }
-  const files = checkFiles(uploads);
-  if ('error' in files) return json({ error: files.error, field: 'attachments' }, 400, origin);
 
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const who = await ipKey(env.CHALLENGE_SECRET, ip);
@@ -157,10 +140,17 @@ async function handleContact(request: Request, env: Env, origin: string | null):
   } catch {
     /* fail open: the signature and the age still bound a replay */
   }
+  return null;
+}
 
-  const country = request.headers.get('cf-ipcountry') || 'unknown';
-  const mail = buildEmail(checked.fields, { country, files: files.files });
-
+/** Hand one email to Resend and answer the form. */
+async function send(
+  env: Env,
+  origin: string | null,
+  mail: { subject: string; text: string; html: string },
+  replyTo: string,
+  attachments: { filename: string; content: string }[] = []
+): Promise<Response> {
   let res: Response;
   try {
     res = await fetch('https://api.resend.com/emails', {
@@ -169,11 +159,11 @@ async function handleContact(request: Request, env: Env, origin: string | null):
       body: JSON.stringify({
         from: env.CONTACT_FROM,
         to: [env.CONTACT_TO],
-        reply_to: [checked.fields.email],
+        reply_to: replyTo ? [replyTo] : undefined,
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
-        attachments: files.files.map((f) => ({ filename: f.filename, content: toBase64(f.bytes) })),
+        attachments: attachments.length ? attachments : undefined,
       }),
       // Resend normally answers in well under a second. Past this, say so
       // rather than hold the visitor's form open.
@@ -192,6 +182,71 @@ async function handleContact(request: Request, env: Env, origin: string | null):
   return json({ ok: true }, 200, origin);
 }
 
+/** Read a multipart form under a size cap; a refusal when it is not one. */
+async function readForm(request: Request, origin: string | null, maxBytes: number, tooLarge: string): Promise<FormData | Refusal> {
+  const declared = Number(request.headers.get('content-length') || '0');
+  if (declared > maxBytes) return json({ error: tooLarge }, 413, origin);
+  if (!(request.headers.get('content-type') || '').startsWith('multipart/form-data')) {
+    return json({ error: 'Unexpected request.' }, 415, origin);
+  }
+  try {
+    return await request.formData();
+  } catch {
+    return json({ error: 'Unexpected request.' }, 400, origin);
+  }
+}
+
+async function handleContact(request: Request, env: Env, origin: string | null): Promise<Response> {
+  const form = await readForm(request, origin, LIMITS.requestBytes, 'That is too large to send. Attachments can add up to 10 MB.');
+  if (form instanceof Response) return form;
+
+  // A person never sees this field. Answer as if it worked, so a bot learns nothing.
+  if (String(form.get('website') || '').trim()) return json({ ok: true }, 200, origin);
+
+  const raw: Record<string, unknown> = {};
+  for (const k of ['name', 'email', 'topic', 'subject', 'message']) raw[k] = form.get(k);
+  const checked = validateFields(raw);
+  if ('error' in checked) return json({ error: checked.error, field: checked.field }, 400, origin);
+
+  const uploads: { name: string; bytes: Uint8Array }[] = [];
+  for (const entry of form.getAll('attachments') as unknown as (string | File)[]) {
+    if (typeof entry === 'string') continue;
+    uploads.push({ name: entry.name, bytes: new Uint8Array(await entry.arrayBuffer()) });
+  }
+  const files = checkFiles(uploads);
+  if ('error' in files) return json({ error: files.error, field: 'attachments' }, 400, origin);
+
+  const refused = await admit(request, env, origin, form);
+  if (refused) return refused;
+
+  const country = request.headers.get('cf-ipcountry') || 'unknown';
+  const mail = buildEmail(checked.fields, { country, files: files.files });
+  return send(
+    env,
+    origin,
+    mail,
+    checked.fields.email,
+    files.files.map((f) => ({ filename: f.filename, content: toBase64(f.bytes) }))
+  );
+}
+
+async function handleUninstall(request: Request, env: Env, origin: string | null): Promise<Response> {
+  const form = await readForm(request, origin, UNINSTALL_LIMITS.requestBytes, 'That is too long to send.');
+  if (form instanceof Response) return form;
+  if (String(form.get('website') || '').trim()) return json({ ok: true }, 200, origin);
+
+  const raw: Record<string, unknown> = {};
+  for (const k of ['reason', 'details', 'otherExtension', 'email', 'version']) raw[k] = form.get(k);
+  const checked = validateUninstall(raw);
+  if ('error' in checked) return json({ error: checked.error, field: checked.field }, 400, origin);
+
+  const refused = await admit(request, env, origin, form);
+  if (refused) return refused;
+
+  const country = request.headers.get('cf-ipcountry') || 'unknown';
+  return send(env, origin, buildUninstallEmail(checked.fields, { country }), checked.fields.email);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -202,7 +257,7 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: isAllowedOrigin(origin) ? 204 : 403, headers: cors(origin) });
     }
-    if (url.pathname !== '/v1/challenge' && url.pathname !== '/v1/contact') return json({ error: 'Not found' }, 404, origin);
+    if (!['/v1/challenge', '/v1/contact', '/v1/uninstall'].includes(url.pathname)) return json({ error: 'Not found' }, 404, origin);
     if (!isAllowedOrigin(origin)) return json({ error: 'Not allowed' }, 403, origin);
 
     try {
@@ -211,6 +266,7 @@ export default {
         return json({ challenge: await issueChallenge(env.CHALLENGE_SECRET) }, 200, origin);
       }
       if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, origin);
+      if (url.pathname === '/v1/uninstall') return await handleUninstall(request, env, origin);
       return await handleContact(request, env, origin);
     } catch {
       return json({ error: 'Something went wrong on our side. Write to us by email instead.' }, 500, origin);
