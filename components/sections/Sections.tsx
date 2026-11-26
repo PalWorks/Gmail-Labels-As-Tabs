@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Sections.tsx
  *
@@ -37,7 +38,7 @@ export const SectionHead: React.FC<{ id?: string; kicker: string; title: string;
 export const FactsStrip: React.FC = () => (
   <ul className="facts" aria-label="At a glance">
     <li>
-      <strong>Free</strong> and MIT licensed
+      <strong>Free</strong> and open source (AGPL 3.0)
     </li>
     <li>
       Runs only on <strong>mail.google.com</strong>

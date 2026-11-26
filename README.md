@@ -177,4 +177,7 @@ described as live, until this workflow has run and
 
 ## License
 
-This project is licensed under the MIT License.
+The site and its relay Worker are licensed under the GNU AGPL 3.0 ([LICENSE](LICENSE)), like the
+extension, from 2026-11-26T08:40:00+00:00. PalWorks offers a commercial licence for use without
+the AGPL's obligations; see the extension repository's
+[COMMERCIAL-LICENSE.md](https://github.com/PalWorks/Gmail-Labels-Queries-As-Tabs/blob/main/COMMERCIAL-LICENSE.md).

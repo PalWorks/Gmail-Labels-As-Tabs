@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * site.ts
  *
@@ -38,7 +39,7 @@ export const SUPPORT_EMAIL = 'support@palworks.ai';
  * change this one line and redeploy; the features, the changelog, the
  * structured data and llms.txt all follow.
  */
-export const LIVE_VERSION = '1.8.1';
+export const LIVE_VERSION = '1.9.0';
 
 /** The version the next submission carries, named where upcoming work is shown. */
 export const NEXT_VERSION = '1.9.0';

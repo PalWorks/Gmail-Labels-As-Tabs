@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';

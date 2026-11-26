@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * prerender.mjs
  *
@@ -275,7 +276,7 @@ ${urls.join('\n')}
     : '';
   const llms = `# ${site.PRODUCT_NAME}
 
-> ${site.ONE_LINER} Also known as ${site.SHORT_NAME}. Free, MIT licensed, made by ${site.ORG_NAME}.
+> ${site.ONE_LINER} Also known as ${site.SHORT_NAME}. Free, open source under the GNU AGPL 3.0, made by ${site.ORG_NAME}.
 
 The extension runs only on mail.google.com. It reads label names and unread counts from the Gmail page the user already has open, draws a tab bar under Gmail's toolbar, and stores the setup in Chrome's own storage. It never reads, stores or sends message content, and it contains no analytics.
 

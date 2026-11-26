@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * schema.ts
  *
@@ -107,7 +108,7 @@ function software(): Node {
     softwareVersion: LIVE_VERSION,
     releaseNotes: url('changelog/'),
     isAccessibleForFree: true,
-    license: 'https://opensource.org/licenses/MIT',
+    license: 'https://www.gnu.org/licenses/agpl-3.0.html',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', availability: 'https://schema.org/InStock', url: STORE_URL },
     featureList: LIVE_FEATURES.map((f) => f.name),
     screenshot: SCREENSHOTS.map((s) => ({
@@ -136,7 +137,7 @@ function sourceCode(): Node {
     name: `${PRODUCT_NAME} source code`,
     codeRepository: REPO_URL,
     programmingLanguage: 'TypeScript',
-    license: 'https://opensource.org/licenses/MIT',
+    license: 'https://www.gnu.org/licenses/agpl-3.0.html',
     targetProduct: { '@id': APP_ID },
     author: { '@id': ORG_ID },
   };

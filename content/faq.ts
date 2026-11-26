@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * faq.ts
  *
@@ -40,7 +41,7 @@ const ALL_FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     question: "Is it free?",
-    answer: "Yes. Free, no account, no upsell, and open source under the MIT license."
+    answer: "Yes. Free, no account, no upsell, and open source under the GNU AGPL 3.0."
   },
   {
     question: "Does it work with multiple Gmail accounts?",

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { STORE_URL } from '../content/site';
 
 /** The store link, tagged so the store's own analytics can tell where installs came from. */

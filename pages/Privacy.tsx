@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React from 'react';
 import { SiteLink as Link } from '../components/SiteLink';
 import { DocPage } from '../components/DocPage';

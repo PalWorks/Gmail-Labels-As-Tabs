@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 /** '2026-09-29' to '29 September 2026'. */

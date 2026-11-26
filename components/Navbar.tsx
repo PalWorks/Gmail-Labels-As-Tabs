@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SiteLink as Link } from './SiteLink';

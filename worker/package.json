@@ -2,6 +2,7 @@
   "name": "gmail-tabs-contact-worker",
   "version": "1.0.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "description": "Cloudflare Worker that relays the website's contact form to email via Resend.",
   "type": "module",
   "scripts": {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * routes.ts
  *
@@ -40,7 +41,7 @@ export const ROUTES: readonly RouteMeta[] = [
     description:
       'Turn Gmail labels and saved searches into tabs above your inbox. Live unread counts, tab colours, one bar per account. Free, open source, and it never reads your mail.',
     crumb: 'Home',
-    updated: '2026-09-30',
+    updated: '2026-11-26',
     changefreq: 'weekly',
     priority: 1,
   },
@@ -72,7 +73,7 @@ export const ROUTES: readonly RouteMeta[] = [
     title: `About ${SHORT_NAME}: who makes it, and what it promises`,
     description: `Who makes ${PRODUCT_NAME}, what it promises about your mail, and how it is kept working when Gmail changes.`,
     crumb: 'About',
-    updated: '2026-09-29',
+    updated: '2026-11-26',
     changefreq: 'yearly',
     priority: 0.5,
   },
@@ -82,7 +83,7 @@ export const ROUTES: readonly RouteMeta[] = [
     title: `Changelog | ${SHORT_NAME}`,
     description: `What changed in each release of ${PRODUCT_NAME} that has reached the Chrome Web Store.`,
     crumb: 'Changelog',
-    updated: '2026-09-29',
+    updated: '2026-11-26',
     changefreq: 'monthly',
     priority: 0.6,
   },
@@ -93,7 +94,7 @@ export const ROUTES: readonly RouteMeta[] = [
     description:
       'What the extension stores, what it never reads, the only three things that can leave your browser, and what the contact form sends.',
     crumb: 'Privacy policy',
-    updated: '2026-09-30',
+    updated: '2026-11-26',
     changefreq: 'monthly',
     priority: 0.5,
   },
@@ -101,9 +102,9 @@ export const ROUTES: readonly RouteMeta[] = [
     path: 'terms/',
     kind: 'terms',
     title: `Terms of use | ${SHORT_NAME}`,
-    description: `The terms for using ${PRODUCT_NAME}: an MIT licensed, free extension with no warranty.`,
+    description: `The terms for using ${PRODUCT_NAME}: a free, open source extension under the GNU AGPL 3.0, with no warranty.`,
     crumb: 'Terms',
-    updated: '2026-09-29',
+    updated: '2026-11-26',
     changefreq: 'yearly',
     priority: 0.3,
   },

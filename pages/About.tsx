@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React from 'react';
 import { DocPage } from '../components/DocPage';
 import { SiteLink as Link } from '../components/SiteLink';
@@ -30,7 +31,7 @@ export const About: React.FC = () => (
         script, and needs no sign-in.
       </li>
       <li>
-        <strong>Free, with nothing held back.</strong> No paid tier, no upsell, no ads, under the MIT license.
+        <strong>Free, with nothing held back.</strong> No paid tier, no upsell, no ads, open source under the GNU AGPL 3.0.
       </li>
       <li>
         <strong>It looks like Gmail.</strong> The bar follows Gmail's own theme and spacing, so it reads as part of the

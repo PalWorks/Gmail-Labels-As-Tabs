@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React from 'react';
 import { SiteLink as Link } from './SiteLink';
 import { LIVE_VERSION, ORG_NAME, PRODUCT_NAME, REPO_URL, SHORT_NAME, SUPPORT_EMAIL } from '../content/site';
@@ -39,7 +40,7 @@ export const Footer: React.FC = () => (
       </nav>
     </div>
     <p className="site-foot__legal">
-      MIT licensed. Not affiliated with, endorsed by or sponsored by Google. Gmail and Chrome are trademarks of Google
+      Open source under the GNU AGPL 3.0. Not affiliated with, endorsed by or sponsored by Google. Gmail and Chrome are trademarks of Google
       LLC.
     </p>
   </footer>

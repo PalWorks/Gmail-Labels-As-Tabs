@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * features.ts
  *
@@ -65,7 +66,7 @@ export const FEATURES: readonly Feature[] = [
     since: '1.3.0',
     name: 'Tab colours from an accessible palette',
     title: 'Colour for the views that matter',
-    body: 'Eight colours, chosen to stay readable in light and dark. Colour is never the only signal, so the bar still reads without it.',
+    body: 'Twelve colours, chosen to stay readable in light and dark. Colour is never the only signal, so the bar still reads without it.',
   },
   {
     key: 'reorder',

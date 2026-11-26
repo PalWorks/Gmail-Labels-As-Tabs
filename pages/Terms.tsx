@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import React from 'react';
 import { DocPage } from '../components/DocPage';
 import { SiteLink as Link } from '../components/SiteLink';
@@ -7,17 +8,18 @@ import { REPO_URL, SUPPORT_EMAIL } from '../content/site';
 // time somebody actually read it. Same reason as in Privacy.tsx.
 //
 // Rewritten 2026-09-29. The earlier text forbade reverse engineering,
-// modifying and making derivative works of the extension, which the MIT
-// license it is published under explicitly allows; terms cannot take back
-// what the license grants, so they now say the license governs the code.
-const LAST_UPDATED = '29 September 2026';
+// modifying and making derivative works of the extension, which its licence
+// explicitly allows; terms cannot take back what the licence grants, so they
+// say the licence governs the code. Updated 2026-11-26 for the move from MIT
+// to the GNU AGPL 3.0 plus a commercial licence, from extension 1.9.0.
+const LAST_UPDATED = '26 November 2026';
 
 export const Terms: React.FC = () => (
   <DocPage
     title="Terms of use"
     crumb="Terms"
     meta={<>Last updated {LAST_UPDATED}.</>}
-    lede="The short version: the extension is free and open source, you may do with its code what the MIT license allows, and it comes with no warranty."
+    lede="The short version: the extension is free and open source, you may do with its code what the GNU AGPL 3.0 allows, a commercial licence is available if you need other terms, and it comes with no warranty."
   >
     <h2>1. Who these terms are between</h2>
     <p>
@@ -26,15 +28,23 @@ export const Terms: React.FC = () => (
       not install or use the extension.
     </p>
 
-    <h2>2. The license</h2>
+    <h2>2. The licence</h2>
     <p>
-      The extension's source code is published under the{' '}
+      From version 1.9.0 the extension's source code is published under the{' '}
       <a href={`${REPO_URL}/blob/main/LICENSE`} target="_blank" rel="noopener">
-        MIT license
+        GNU Affero General Public License 3.0
       </a>
-      . It lets you use, copy, modify, merge, publish, distribute, sublicense and sell copies of the code, provided the
-      copyright notice and the license are kept with it. Nothing in these terms limits what that license allows. If
-      these terms and the license ever disagree about the code, the license wins.
+      . It lets you use, study, change and share the code. If you distribute a modified version, or run one for others
+      over a network, you must offer its complete source code under the same licence. Nothing in these terms limits
+      what that licence allows. If these terms and the licence ever disagree about the code, the licence wins.
+    </p>
+    <p>
+      To use the code without those obligations, for example inside a closed-source product, PalWorks offers a{' '}
+      <a href={`${REPO_URL}/blob/main/COMMERCIAL-LICENSE.md`} target="_blank" rel="noopener">
+        commercial licence
+      </a>
+      . Versions up to 1.8.1 were published under the MIT license, and copies of those versions keep it. Installing
+      the extension from the Chrome Web Store is free for everyone and needs neither licence.
     </p>
     <p>
       The name "Gmail Labels and Search Queries as Tabs", the logo and this website's text and design are not part of
@@ -76,7 +86,7 @@ export const Terms: React.FC = () => (
     <p>
       The extension and this site are provided "as is" and "as available", without warranty of any kind, express or
       implied, including warranties of merchantability, fitness for a particular purpose and non-infringement, to the
-      fullest extent the law allows. This is the same disclaimer the MIT license makes.
+      fullest extent the law allows. This matches the disclaimer in sections 15 and 16 of the GNU AGPL 3.0.
     </p>
 
     <h2>7. Limitation of liability</h2>
